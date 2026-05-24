@@ -1,1 +1,1194 @@
-# XingHuihubgogogaga
+--[[
+    狗狗給hub - 最終完整版（全皮已內嵌）
+--]]
+
+-- ===== 防封 =====
+local function safeAntiBan()
+    pcall(function()
+        local CoreGui = game:GetService("CoreGui")
+        pcall(function()
+            if syn and syn.protect_gui then
+                syn.protect_gui(CoreGui)
+            end
+        end)
+        pcall(function()
+            if setfflag then
+                setfflag("AbuseReportScreenshot", "False")
+                setfflag("AbuseReportScreenshotPercentage", "0")
+            end
+        end)
+        task.wait(math.random(100, 300) / 1000)
+        pcall(function()
+            local mt = getrawmetatable(game)
+            local old = mt.__namecall
+            setreadonly(mt, false)
+            mt.__namecall = function(self, ...)
+                local method = getnamecallmethod()
+                if method == "GetObjects" or method == "HttpGet" then
+                    return old(self, ...)
+                end
+                return old(self, ...)
+            end
+            setreadonly(mt, true)
+        end)
+    end)
+end
+safeAntiBan()
+
+-- ===== 服務 =====
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+local RunService = game:GetService("RunService")
+local CoreGui = game:GetService("CoreGui")
+local UserInputService = game:GetService("UserInputService")
+local HttpService = game:GetService("HttpService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Lighting = game:GetService("Lighting")
+
+-- ===== 功能 =====
+
+-- 1. 黑牆
+local BlackWall = {
+    Enabled = false,
+    Connection = nil,
+    TARGET_NAMES = {"Part", "Truss", "Floor", "Wall"},
+    DARK_COLOR = Color3.new(0.15, 0.15, 0.15),
+    Enable = function(self)
+        if self.Connection then return end
+        self.Connection = RunService.RenderStepped:Connect(function()
+            pcall(function()
+                for _, part in ipairs(workspace:GetDescendants()) do
+                    if part:IsA("BasePart") then
+                        for _, name in ipairs(self.TARGET_NAMES) do
+                            if part.Name == name then
+                                part.Color = self.DARK_COLOR
+                                break
+                            end
+                        end
+                    end
+                end
+            end)
+        end)
+    end,
+    Disable = function(self)
+        if self.Connection then
+            self.Connection:Disconnect()
+            self.Connection = nil
+        end
+    end
+}
+
+-- 2. 速彈無後座
+local SpeedNoRecoil = {
+    Enabled = false,
+    HookSetup = false,
+    Enable = function(self)
+        if self.Enabled then return end
+        self.Enabled = true
+        if not self.HookSetup then
+            self:_setup()
+            self.HookSetup = true
+        end
+    end,
+    Disable = function(self)
+        self.Enabled = false
+    end,
+    _setup = function(self)
+        pcall(function()
+            local PS = LocalPlayer:WaitForChild("PlayerScripts")
+            local ClientItem = PS:WaitForChild("Modules"):WaitForChild("ClientReplicatedClasses"):WaitForChild("ClientFighter"):WaitForChild("ClientItem")
+            local m = require(ClientItem)
+            local orig = m.Input
+            m.Input = function(...)
+                local args = {...}
+                if self.Enabled and args[1] and args[1].Info then
+                    args[1].Info.ShootRecoil = 0
+                    args[1].Info.ShootSpread = 0
+                    args[1].Info.ProjectileSpeed = 99999999
+                    args[1].Info.ShootCooldown = 0
+                    args[1].Info.QuickShotCooldown = 0
+                end
+                return orig(...)
+            end
+        end)
+    end
+}
+
+-- 3. 靜默瞄準（可輸入數字調距離）
+local SilentAim = {
+    Enabled = false,
+    HookSetup = false,
+    MaxDistance = 0,
+    Enable = function(self)
+        if self.Enabled then return end
+        self.Enabled = true
+        if not self.HookSetup then
+            self:_setup()
+            self.HookSetup = true
+        end
+    end,
+    Disable = function(self)
+        self.Enabled = false
+    end,
+    SetRange = function(self, dist)
+        self.MaxDistance = tonumber(dist) or 0
+    end,
+    _setup = function(self)
+        pcall(function()
+            local Utility = require(ReplicatedStorage:WaitForChild("Modules"):WaitForChild("Utility"))
+            local orig = Utility.Raycast
+            local function getClosestHead()
+                local char = LocalPlayer.Character
+                if not char then return nil end
+                local root = char:FindFirstChild("HumanoidRootPart")
+                if not root then return nil end
+                local myPos = root.Position
+                local bestHead, bestDist = nil, math.huge
+                for _, plr in ipairs(Players:GetPlayers()) do
+                    if plr == LocalPlayer then continue end
+                    local head = plr.Character and plr.Character:FindFirstChild("Head")
+                    if head then
+                        local dist = (head.Position - myPos).Magnitude
+                        if self.MaxDistance > 0 and dist > self.MaxDistance then
+                            continue
+                        end
+                        if dist < bestDist then
+                            bestDist = dist
+                            bestHead = head
+                        end
+                    end
+                end
+                return bestHead
+            end
+            Utility.Raycast = function(origin, direction, target, ...)
+                if self.Enabled and (typeof(target) == "Vector3" or typeof(target) == "vector") then
+                    local head = getClosestHead()
+                    if head then
+                        target = head.Position
+                    end
+                end
+                return orig(origin, direction, target, ...)
+            end
+        end)
+    end
+}
+
+-- 4. 星空
+local OfficialSky = {
+    Enabled = false,
+    SkyInstance = nil,
+    OfficialIds = {
+        Ft = "2570432998", Bk = "2570432999", Lf = "2570433000",
+        Rt = "2570432997", Up = "2570432996", Dn = "2570433005",
+    },
+    Enable = function(self)
+        if self.Enabled then return end
+        self.Enabled = true
+        self:clearSky()
+        local sky = Instance.new("Sky", Lighting)
+        sky.SkyboxFt = "rbxassetid://" .. self.OfficialIds.Ft
+        sky.SkyboxBk = "rbxassetid://" .. self.OfficialIds.Bk
+        sky.SkyboxLf = "rbxassetid://" .. self.OfficialIds.Lf
+        sky.SkyboxRt = "rbxassetid://" .. self.OfficialIds.Rt
+        sky.SkyboxUp = "rbxassetid://" .. self.OfficialIds.Up
+        sky.SkyboxDn = "rbxassetid://" .. self.OfficialIds.Dn
+        self.SkyInstance = sky
+    end,
+    Disable = function(self)
+        self.Enabled = false
+        self:clearSky()
+    end,
+    clearSky = function(self)
+        for _, obj in ipairs(Lighting:GetChildren()) do
+            if obj:IsA("Sky") then obj:Destroy() end
+        end
+        self.SkyInstance = nil
+    end
+}
+
+-- 5. 全皮解鎖（完整）
+local function ExecuteUnlockAll()
+    local Players = game:GetService("Players")
+    local ReplicatedStorage = game:GetService("ReplicatedStorage")
+    local HttpService = game:GetService("HttpService")
+    local player = Players.LocalPlayer
+    local playerScripts = player.PlayerScripts
+    local controllers = playerScripts.Controllers
+
+    local EnumLibrary = require(ReplicatedStorage.Modules:WaitForChild("EnumLibrary", 10))
+    if EnumLibrary then EnumLibrary:WaitForEnumBuilder() end
+
+    local CosmeticLibrary = require(ReplicatedStorage.Modules:WaitForChild("CosmeticLibrary", 10))
+    local ItemLibrary = require(ReplicatedStorage.Modules:WaitForChild("ItemLibrary", 10))
+    local DataController = require(controllers:WaitForChild("PlayerDataController", 10))
+
+    local equipped, favorites = {}, {}
+    local constructingWeapon, viewingProfile = nil, nil
+    local lastUsedWeapon = nil
+
+    local function cloneCosmetic(name, cosmeticType, options)
+        local base = CosmeticLibrary.Cosmetics[name]
+        if not base then return nil end
+        local data = {}
+        for key, value in pairs(base) do data[key] = value end
+        data.Name = name
+        data.Type = data.Type or cosmeticType
+        data.Seed = data.Seed or math.random(1, 1000000)
+        if EnumLibrary then
+            local success, enumId = pcall(EnumLibrary.ToEnum, EnumLibrary, name)
+            if success and enumId then data.Enum, data.ObjectID = enumId, data.ObjectID or enumId end
+        end
+        if options then
+            if options.inverted ~= nil then data.Inverted = options.inverted end
+            if options.favoritesOnly ~= nil then data.OnlyUseFavorites = options.favoritesOnly end
+        end
+        return data
+    end
+
+    local saveFile = "unlockall/config.json"
+    local function saveConfig()
+        if not writefile then return end
+        pcall(function()
+            local config = {equipped = {}, favorites = favorites}
+            for weapon, cosmetics in pairs(equipped) do
+                config.equipped[weapon] = {}
+                for cosmeticType, cosmeticData in pairs(cosmetics) do
+                    if cosmeticData and cosmeticData.Name then
+                        config.equipped[weapon][cosmeticType] = {
+                            name = cosmeticData.Name, seed = cosmeticData.Seed, inverted = cosmeticData.Inverted
+                        }
+                    end
+                end
+            end
+            makefolder("unlockall")
+            writefile(saveFile, HttpService:JSONEncode(config))
+        end)
+    end
+
+    local function loadConfig()
+        if not readfile or not isfile or not isfile(saveFile) then return end
+        pcall(function()
+            local config = HttpService:JSONDecode(readfile(saveFile))
+            if config.equipped then
+                for weapon, cosmetics in pairs(config.equipped) do
+                    equipped[weapon] = {}
+                    for cosmeticType, cosmeticData in pairs(cosmetics) do
+                        local cloned = cloneCosmetic(cosmeticData.name, cosmeticType, {inverted = cosmeticData.inverted})
+                        if cloned then cloned.Seed = cosmeticData.seed equipped[weapon][cosmeticType] = cloned end
+                    end
+                end
+            end
+            favorites = config.favorites or {}
+        end)
+    end
+
+    -- HOOK SKINS
+    CosmeticLibrary.OwnsCosmeticNormally = function(self, inventory, name, weapon)
+        local cosmetic = CosmeticLibrary.Cosmetics[name]
+        if cosmetic and cosmetic.Type == "Skin" then return true end
+        return false
+    end
+    CosmeticLibrary.OwnsCosmeticUniversally = function(self, inventory, name, weapon)
+        local cosmetic = CosmeticLibrary.Cosmetics[name]
+        if cosmetic and cosmetic.Type == "Skin" then return true end
+        return false
+    end
+    CosmeticLibrary.OwnsCosmeticForWeapon = function(self, inventory, name, weapon)
+        local cosmetic = CosmeticLibrary.Cosmetics[name]
+        if cosmetic and cosmetic.Type == "Skin" then return true end
+        return false
+    end
+    local originalOwnsCosmetic = CosmeticLibrary.OwnsCosmetic
+    CosmeticLibrary.OwnsCosmetic = function(self, inventory, name, weapon)
+        if name:find("MISSING_") then return originalOwnsCosmetic(self, inventory, name, weapon) end
+        local cosmetic = CosmeticLibrary.Cosmetics[name]
+        if cosmetic and cosmetic.Type == "Skin" then return true end
+        return originalOwnsCosmetic(self, inventory, name, weapon)
+    end
+
+    local originalGet = DataController.Get
+    DataController.Get = function(self, key)
+        local data = originalGet(self, key)
+        if key == "CosmeticInventory" then
+            local proxy = {}
+            if data then for k, v in pairs(data) do 
+                local cosmetic = CosmeticLibrary.Cosmetics[k]
+                if cosmetic and cosmetic.Type == "Skin" then proxy[k] = v end
+            end end
+            return setmetatable(proxy, {__index = function(t, k)
+                local cosmetic = CosmeticLibrary.Cosmetics[k]
+                if cosmetic and cosmetic.Type == "Skin" then return true end
+                return nil
+            end})
+        end
+        if key == "FavoritedCosmetics" then
+            local result = data and table.clone(data) or {}
+            for weapon, favs in pairs(favorites) do
+                result[weapon] = result[weapon] or {}
+                for name, isFav in pairs(favs) do 
+                    local cosmetic = CosmeticLibrary.Cosmetics[name]
+                    if cosmetic and cosmetic.Type == "Skin" then result[weapon][name] = isFav end
+                end
+            end
+            return result
+        end
+        return data
+    end
+
+    local originalGetWeaponData = DataController.GetWeaponData
+    DataController.GetWeaponData = function(self, weaponName)
+        local data = originalGetWeaponData(self, weaponName)
+        if not data then return nil end
+        local merged = {}
+        for key, value in pairs(data) do merged[key] = value end
+        merged.Name = weaponName
+        if equipped[weaponName] then
+            for cosmeticType, cosmeticData in pairs(equipped[weaponName]) do 
+                if cosmeticType == "Skin" then merged[cosmeticType] = cosmeticData end
+            end
+        end
+        return merged
+    end
+
+    local FighterController
+    pcall(function() FighterController = require(controllers:WaitForChild("FighterController", 10)) end)
+
+    if hookmetamethod then
+        local remotes = ReplicatedStorage:FindFirstChild("Remotes")
+        local dataRemotes = remotes and remotes:FindFirstChild("Data")
+        local equipRemote = dataRemotes and dataRemotes:FindFirstChild("EquipCosmetic")
+        local favoriteRemote = dataRemotes and dataRemotes:FindFirstChild("FavoriteCosmetic")
+        local replicationRemotes = remotes and remotes:FindFirstChild("Replication")
+        local fighterRemotes = replicationRemotes and replicationRemotes:FindFirstChild("Fighter")
+        local useItemRemote = fighterRemotes and fighterRemotes:FindFirstChild("UseItem")
+        
+        if equipRemote then
+            local oldNamecall
+            oldNamecall = hookmetamethod(game, "__namecall", function(self, ...)
+                if getnamecallmethod() ~= "FireServer" then return oldNamecall(self, ...) end
+                local args = {...}
+                if useItemRemote and self == useItemRemote then
+                    local objectID = args[1]
+                    if FighterController then
+                        pcall(function()
+                            local fighter = FighterController:GetFighter(player)
+                            if fighter and fighter.Items then
+                                for _, item in pairs(fighter.Items) do
+                                    if item:Get("ObjectID") == objectID then lastUsedWeapon = item.Name break end
+                                end
+                            end
+                        end)
+                    end
+                end
+                if self == equipRemote then
+                    local weaponName, cosmeticType, cosmeticName, options = args[1], args[2], args[3], args[4] or {}
+                    if cosmeticType ~= "Skin" then return oldNamecall(self, ...) end
+                    if cosmeticName and cosmeticName ~= "None" and cosmeticName ~= "" then
+                        local inventory = DataController:Get("CosmeticInventory")
+                        if inventory and rawget(inventory, cosmeticName) then return oldNamecall(self, ...) end
+                    end
+                    equipped[weaponName] = equipped[weaponName] or {}
+                    if not cosmeticName or cosmeticName == "None" or cosmeticName == "" then
+                        equipped[weaponName][cosmeticType] = nil
+                        if not next(equipped[weaponName]) then equipped[weaponName] = nil end
+                    else
+                        local cloned = cloneCosmetic(cosmeticName, cosmeticType, {inverted = options.IsInverted, favoritesOnly = options.OnlyUseFavorites})
+                        if cloned then equipped[weaponName][cosmeticType] = cloned end
+                    end
+                    task.defer(function()
+                        pcall(function() DataController.CurrentData:Replicate("WeaponInventory") end)
+                        task.wait(0.2)
+                        saveConfig()
+                    end)
+                    return
+                end
+                if self == favoriteRemote then
+                    local cosmetic = CosmeticLibrary.Cosmetics[args[2]]
+                    if cosmetic and cosmetic.Type == "Skin" then
+                        favorites[args[1]] = favorites[args[1]] or {}
+                        favorites[args[1]][args[2]] = args[3] or nil
+                        saveConfig()
+                        task.spawn(function() pcall(function() DataController.CurrentData:Replicate("FavoritedCosmetics") end) end)
+                    end
+                    return
+                end
+                return oldNamecall(self, ...)
+            end)
+        end
+    end
+
+    local ClientItem
+    pcall(function() ClientItem = require(player.PlayerScripts.Modules.ClientReplicatedClasses.ClientFighter.ClientItem) end)
+
+    if ClientItem and ClientItem._CreateViewModel then
+        local originalCreateViewModel = ClientItem._CreateViewModel
+        ClientItem._CreateViewModel = function(self, viewmodelRef)
+            local weaponName = self.Name
+            local weaponPlayer = self.ClientFighter and self.ClientFighter.Player
+            constructingWeapon = (weaponPlayer == player) and weaponName or nil
+            if weaponPlayer == player and equipped[weaponName] and equipped[weaponName].Skin and viewmodelRef then
+                local dataKey, skinKey, nameKey = self:ToEnum("Data"), self:ToEnum("Skin"), self:ToEnum("Name")
+                if viewmodelRef[dataKey] then
+                    viewmodelRef[dataKey][skinKey] = equipped[weaponName].Skin
+                    viewmodelRef[dataKey][nameKey] = equipped[weaponName].Skin.Name
+                elseif viewmodelRef.Data then
+                    viewmodelRef.Data.Skin = equipped[weaponName].Skin
+                    viewmodelRef.Data.Name = equipped[weaponName].Skin.Name
+                end
+            end
+            local result = originalCreateViewModel(self, viewmodelRef)
+            constructingWeapon = nil
+            return result
+        end
+    end
+
+    local viewModelModule = player.PlayerScripts.Modules.ClientReplicatedClasses.ClientFighter.ClientItem:FindFirstChild("ClientViewModel")
+    if viewModelModule then
+        local ClientViewModel = require(viewModelModule)
+        local originalNew = ClientViewModel.new
+        ClientViewModel.new = function(replicatedData, clientItem)
+            local weaponPlayer = clientItem.ClientFighter and clientItem.ClientFighter.Player
+            local weaponName = constructingWeapon or clientItem.Name
+            if weaponPlayer == player and equipped[weaponName] then
+                local ReplicatedClass = require(ReplicatedStorage.Modules.ReplicatedClass)
+                local dataKey = ReplicatedClass:ToEnum("Data")
+                replicatedData[dataKey] = replicatedData[dataKey] or {}
+                local cosmetics = equipped[weaponName]
+                if cosmetics.Skin then replicatedData[dataKey][ReplicatedClass:ToEnum("Skin")] = cosmetics.Skin end
+            end
+            local result = originalNew(replicatedData, clientItem)
+            return result
+        end
+    end
+
+    local originalGetViewModelImage = ItemLibrary.GetViewModelImageFromWeaponData
+    ItemLibrary.GetViewModelImageFromWeaponData = function(self, weaponData, highRes)
+        if not weaponData then return originalGetViewModelImage(self, weaponData, highRes) end
+        local weaponName = weaponData.Name
+        local shouldShowSkin = (weaponData.Skin and equipped[weaponName] and weaponData.Skin == equipped[weaponName].Skin) or (viewingProfile == player and equipped[weaponName] and equipped[weaponName].Skin)
+        if shouldShowSkin and equipped[weaponName] and equipped[weaponName].Skin then
+            local skinInfo = self.ViewModels[equipped[weaponName].Skin.Name]
+            if skinInfo then return skinInfo[highRes and "ImageHighResolution" or "Image"] or skinInfo.Image end
+        end
+        return originalGetViewModelImage(self, weaponData, highRes)
+    end
+
+    -- HOOK CHARMS
+    local originalOwnsCosmeticCharm = CosmeticLibrary.OwnsCosmetic
+    CosmeticLibrary.OwnsCosmetic = function(self, inventory, name, weapon)
+        if name:find("MISSING_") then return originalOwnsCosmeticCharm(self, inventory, name, weapon) end
+        local cosmetic = CosmeticLibrary.Cosmetics[name]
+        if cosmetic and (cosmetic.Type == "Charm" or name:lower():find("charm")) then return true end
+        return originalOwnsCosmeticCharm(self, inventory, name, weapon)
+    end
+
+    local originalGetCharm = DataController.Get
+    DataController.Get = function(self, key)
+        local data = originalGetCharm(self, key)
+        if key == "CosmeticInventory" then
+            local proxy = {}
+            if data then for k, v in pairs(data) do 
+                local cosmetic = CosmeticLibrary.Cosmetics[k]
+                if cosmetic and (cosmetic.Type == "Charm" or k:lower():find("charm")) then proxy[k] = v end
+            end end
+            return setmetatable(proxy, {__index = function(t, k)
+                local cosmetic = CosmeticLibrary.Cosmetics[k]
+                if cosmetic and (cosmetic.Type == "Charm" or k:lower():find("charm")) then return true end
+                return nil
+            end})
+        end
+        if key == "FavoritedCosmetics" then
+            local result = data and table.clone(data) or {}
+            for weapon, favs in pairs(favorites) do
+                result[weapon] = result[weapon] or {}
+                for name, isFav in pairs(favs) do 
+                    local cosmetic = CosmeticLibrary.Cosmetics[name]
+                    if cosmetic and (cosmetic.Type == "Charm" or name:lower():find("charm")) then result[weapon][name] = isFav end
+                end
+            end
+            return result
+        end
+        return data
+    end
+
+    if hookmetamethod then
+        local remotes = ReplicatedStorage:FindFirstChild("Remotes")
+        local dataRemotes = remotes and remotes:FindFirstChild("Data")
+        local equipRemote = dataRemotes and dataRemotes:FindFirstChild("EquipCosmetic")
+        local favoriteRemote = dataRemotes and dataRemotes:FindFirstChild("FavoriteCosmetic")
+        
+        if equipRemote then
+            local oldNamecall
+            oldNamecall = hookmetamethod(game, "__namecall", function(self, ...)
+                if getnamecallmethod() ~= "FireServer" then return oldNamecall(self, ...) end
+                local args = {...}
+                if self == equipRemote then
+                    local weaponName, cosmeticType, cosmeticName, options = args[1], args[2], args[3], args[4] or {}
+                    if cosmeticType ~= "Charm" then return oldNamecall(self, ...) end
+                    if cosmeticName and cosmeticName ~= "None" and cosmeticName ~= "" then
+                        local inventory = DataController:Get("CosmeticInventory")
+                        if inventory and rawget(inventory, cosmeticName) then return oldNamecall(self, ...) end
+                    end
+                    equipped[weaponName] = equipped[weaponName] or {}
+                    if not cosmeticName or cosmeticName == "None" or cosmeticName == "" then
+                        equipped[weaponName][cosmeticType] = nil
+                        if not next(equipped[weaponName]) then equipped[weaponName] = nil end
+                    else
+                        local cloned = cloneCosmetic(cosmeticName, cosmeticType, {inverted = options.IsInverted, favoritesOnly = options.OnlyUseFavorites})
+                        if cloned then equipped[weaponName][cosmeticType] = cloned end
+                    end
+                    task.defer(function()
+                        pcall(function() DataController.CurrentData:Replicate("WeaponInventory") end)
+                        task.wait(0.2)
+                        saveConfig()
+                    end)
+                    return
+                end
+                if self == favoriteRemote then
+                    local cosmetic = CosmeticLibrary.Cosmetics[args[2]]
+                    if cosmetic and (cosmetic.Type == "Charm" or args[2]:lower():find("charm")) then
+                        favorites[args[1]] = favorites[args[1]] or {}
+                        favorites[args[1]][args[2]] = args[3] or nil
+                        saveConfig()
+                        task.spawn(function() pcall(function() DataController.CurrentData:Replicate("FavoritedCosmetics") end) end)
+                    end
+                    return
+                end
+                return oldNamecall(self, ...)
+            end)
+        end
+    end
+
+    if ClientItem and ClientItem._CreateViewModel then
+        local originalCreateViewModelCharm = ClientItem._CreateViewModel
+        ClientItem._CreateViewModel = function(self, viewmodelRef)
+            local weaponName = self.Name
+            local weaponPlayer = self.ClientFighter and self.ClientFighter.Player
+            constructingWeapon = (weaponPlayer == player) and weaponName or nil
+            if weaponPlayer == player and equipped[weaponName] and equipped[weaponName].Charm and viewmodelRef then
+                local dataKey, charmKey, nameKey = self:ToEnum("Data"), self:ToEnum("Charm"), self:ToEnum("Name")
+                if viewmodelRef[dataKey] then
+                    viewmodelRef[dataKey][charmKey] = equipped[weaponName].Charm
+                    viewmodelRef[dataKey][nameKey] = equipped[weaponName].Charm.Name
+                elseif viewmodelRef.Data then
+                    viewmodelRef.Data.Charm = equipped[weaponName].Charm
+                    viewmodelRef.Data.Name = equipped[weaponName].Charm.Name
+                end
+            end
+            local result = originalCreateViewModelCharm(self, viewmodelRef)
+            constructingWeapon = nil
+            return result
+        end
+    end
+
+    if viewModelModule then
+        local ClientViewModel = require(viewModelModule)
+        if ClientViewModel.GetCharm then
+            local originalGetCharmFunc = ClientViewModel.GetCharm
+            ClientViewModel.GetCharm = function(self)
+                local weaponName = self.ClientItem and self.ClientItem.Name
+                local weaponPlayer = self.ClientItem and self.ClientItem.ClientFighter and self.ClientItem.ClientFighter.Player
+                if weaponName and weaponPlayer == player and equipped[weaponName] and equipped[weaponName].Charm then
+                    return equipped[weaponName].Charm
+                end
+                return originalGetCharmFunc(self)
+            end
+        end
+        local originalNewCharm = ClientViewModel.new
+        ClientViewModel.new = function(replicatedData, clientItem)
+            local weaponPlayer = clientItem.ClientFighter and clientItem.ClientFighter.Player
+            local weaponName = constructingWeapon or clientItem.Name
+            if weaponPlayer == player and equipped[weaponName] then
+                local ReplicatedClass = require(ReplicatedStorage.Modules.ReplicatedClass)
+                local dataKey = ReplicatedClass:ToEnum("Data")
+                replicatedData[dataKey] = replicatedData[dataKey] or {}
+                local cosmetics = equipped[weaponName]
+                if cosmetics.Charm then replicatedData[dataKey][ReplicatedClass:ToEnum("Charm")] = cosmetics.Charm end
+            end
+            local result = originalNewCharm(replicatedData, clientItem)
+            return result
+        end
+    end
+
+    -- HOOK DANCES
+    local originalOwnsCosmeticDance = CosmeticLibrary.OwnsCosmetic
+    CosmeticLibrary.OwnsCosmetic = function(self, inventory, name, weapon)
+        if name:find("MISSING_") then return originalOwnsCosmeticDance(self, inventory, name, weapon) end
+        local cosmetic = CosmeticLibrary.Cosmetics[name]
+        if cosmetic and (cosmetic.Type == "Dance" or cosmetic.Type == "Emote" or name:lower():find("dance") or name:lower():find("emote")) then return true end
+        return originalOwnsCosmeticDance(self, inventory, name, weapon)
+    end
+
+    local originalGetDance = DataController.Get
+    DataController.Get = function(self, key)
+        local data = originalGetDance(self, key)
+        if key == "CosmeticInventory" then
+            local proxy = {}
+            if data then for k, v in pairs(data) do 
+                local cosmetic = CosmeticLibrary.Cosmetics[k]
+                if cosmetic and (cosmetic.Type == "Dance" or cosmetic.Type == "Emote" or k:lower():find("dance") or k:lower():find("emote")) then proxy[k] = v end
+            end end
+            return setmetatable(proxy, {__index = function(t, k)
+                local cosmetic = CosmeticLibrary.Cosmetics[k]
+                if cosmetic and (cosmetic.Type == "Dance" or cosmetic.Type == "Emote" or k:lower():find("dance") or k:lower():find("emote")) then return true end
+                return nil
+            end})
+        end
+        if key == "FavoritedCosmetics" then
+            local result = data and table.clone(data) or {}
+            for weapon, favs in pairs(favorites) do
+                result[weapon] = result[weapon] or {}
+                for name, isFav in pairs(favs) do 
+                    local cosmetic = CosmeticLibrary.Cosmetics[name]
+                    if cosmetic and (cosmetic.Type == "Dance" or cosmetic.Type == "Emote" or name:lower():find("dance") or name:lower():find("emote")) then result[weapon][name] = isFav end
+                end
+            end
+            return result
+        end
+        return data
+    end
+
+    if hookmetamethod then
+        local remotes = ReplicatedStorage:FindFirstChild("Remotes")
+        local dataRemotes = remotes and remotes:FindFirstChild("Data")
+        local equipRemote = dataRemotes and dataRemotes:FindFirstChild("EquipCosmetic")
+        local favoriteRemote = dataRemotes and dataRemotes:FindFirstChild("FavoriteCosmetic")
+        
+        if equipRemote then
+            local oldNamecall
+            oldNamecall = hookmetamethod(game, "__namecall", function(self, ...)
+                if getnamecallmethod() ~= "FireServer" then return oldNamecall(self, ...) end
+                local args = {...}
+                if self == equipRemote then
+                    local weaponName, cosmeticType, cosmeticName, options = args[1], args[2], args[3], args[4] or {}
+                    if cosmeticType == "Dance" or cosmeticType == "Emote" or (cosmeticName and (cosmeticName:lower():find("dance") or cosmeticName:lower():find("emote"))) then
+                        equipped.Dances = equipped.Dances or {}
+                        if not cosmeticName or cosmeticName == "None" or cosmeticName == "" then
+                            equipped.Dances[cosmeticType] = nil
+                        else
+                            local cloned = cloneCosmetic(cosmeticName, cosmeticType, {inverted = options.IsInverted, favoritesOnly = options.OnlyUseFavorites})
+                            if cloned then equipped.Dances[cosmeticType] = cloned end
+                        end
+                        task.defer(function()
+                            pcall(function() DataController.CurrentData:Replicate("CosmeticInventory") end)
+                            task.wait(0.2)
+                            saveConfig()
+                        end)
+                        return
+                    end
+                    return oldNamecall(self, ...)
+                end
+                if self == favoriteRemote then
+                    local cosmetic = CosmeticLibrary.Cosmetics[args[2]]
+                    if cosmetic and (cosmetic.Type == "Dance" or cosmetic.Type == "Emote" or args[2]:lower():find("dance") or args[2]:lower():find("emote")) then
+                        favorites[args[1]] = favorites[args[1]] or {}
+                        favorites[args[1]][args[2]] = args[3] or nil
+                        saveConfig()
+                        task.spawn(function() pcall(function() DataController.CurrentData:Replicate("FavoritedCosmetics") end) end)
+                    end
+                    return
+                end
+                return oldNamecall(self, ...)
+            end)
+        end
+    end
+
+    local EmoteController
+    pcall(function() 
+        EmoteController = require(controllers:WaitForChild("EmoteController", 10))
+        if EmoteController and EmoteController.GetEmotes then
+            local originalGetEmotes = EmoteController.GetEmotes
+            EmoteController.GetEmotes = function(self)
+                local emotes = originalGetEmotes(self)
+                for name, cosmetic in pairs(CosmeticLibrary.Cosmetics) do
+                    if cosmetic and (cosmetic.Type == "Dance" or cosmetic.Type == "Emote" or name:lower():find("dance") or name:lower():find("emote")) then
+                        if not emotes[name] then
+                            emotes[name] = {
+                                Name = name,
+                                Type = cosmetic.Type,
+                                ObjectID = cosmetic.ObjectID,
+                                Enum = cosmetic.Enum
+                            }
+                        end
+                    end
+                end
+                return emotes
+            end
+        end
+    end)
+
+    -- HOOK WRAPS
+    local originalOwnsCosmeticWrap = CosmeticLibrary.OwnsCosmetic
+    CosmeticLibrary.OwnsCosmetic = function(self, inventory, name, weapon)
+        if name:find("MISSING_") then return originalOwnsCosmeticWrap(self, inventory, name, weapon) end
+        local cosmetic = CosmeticLibrary.Cosmetics[name]
+        if cosmetic and (cosmetic.Type == "Wrap" or cosmetic.Type == "Wrapping" or name:lower():find("wrap")) then return true end
+        return originalOwnsCosmeticWrap(self, inventory, name, weapon)
+    end
+
+    local originalGetWrapVer = DataController.Get
+    DataController.Get = function(self, key)
+        local data = originalGetWrapVer(self, key)
+        if key == "CosmeticInventory" then
+            local proxy = {}
+            if data then for k, v in pairs(data) do 
+                local cosmetic = CosmeticLibrary.Cosmetics[k]
+                if cosmetic and (cosmetic.Type == "Wrap" or cosmetic.Type == "Wrapping" or k:lower():find("wrap")) then proxy[k] = v end
+            end end
+            return setmetatable(proxy, {__index = function(t, k)
+                local cosmetic = CosmeticLibrary.Cosmetics[k]
+                if cosmetic and (cosmetic.Type == "Wrap" or cosmetic.Type == "Wrapping" or k:lower():find("wrap")) then return true end
+                return nil
+            end})
+        end
+        if key == "FavoritedCosmetics" then
+            local result = data and table.clone(data) or {}
+            for weapon, favs in pairs(favorites) do
+                result[weapon] = result[weapon] or {}
+                for name, isFav in pairs(favs) do 
+                    local cosmetic = CosmeticLibrary.Cosmetics[name]
+                    if cosmetic and (cosmetic.Type == "Wrap" or cosmetic.Type == "Wrapping" or name:lower():find("wrap")) then result[weapon][name] = isFav end
+                end
+            end
+            return result
+        end
+        return data
+    end
+
+    if hookmetamethod then
+        local remotes = ReplicatedStorage:FindFirstChild("Remotes")
+        local dataRemotes = remotes and remotes:FindFirstChild("Data")
+        local equipRemote = dataRemotes and dataRemotes:FindFirstChild("EquipCosmetic")
+        local favoriteRemote = dataRemotes and dataRemotes:FindFirstChild("FavoriteCosmetic")
+        
+        if equipRemote then
+            local oldNamecall
+            oldNamecall = hookmetamethod(game, "__namecall", function(self, ...)
+                if getnamecallmethod() ~= "FireServer" then return oldNamecall(self, ...) end
+                local args = {...}
+                if self == equipRemote then
+                    local weaponName, cosmeticType, cosmeticName, options = args[1], args[2], args[3], args[4] or {}
+                    if cosmeticType ~= "Wrap" and cosmeticType ~= "Wrapping" then return oldNamecall(self, ...) end
+                    if cosmeticName and cosmeticName ~= "None" and cosmeticName ~= "" then
+                        local inventory = DataController:Get("CosmeticInventory")
+                        if inventory and rawget(inventory, cosmeticName) then return oldNamecall(self, ...) end
+                    end
+                    equipped[weaponName] = equipped[weaponName] or {}
+                    if not cosmeticName or cosmeticName == "None" or cosmeticName == "" then
+                        equipped[weaponName][cosmeticType] = nil
+                        if not next(equipped[weaponName]) then equipped[weaponName] = nil end
+                    else
+                        local cloned = cloneCosmetic(cosmeticName, cosmeticType, {inverted = options.IsInverted, favoritesOnly = options.OnlyUseFavorites})
+                        if cloned then equipped[weaponName][cosmeticType] = cloned end
+                    end
+                    task.defer(function()
+                        pcall(function() DataController.CurrentData:Replicate("WeaponInventory") end)
+                        task.wait(0.2)
+                        saveConfig()
+                    end)
+                    return
+                end
+                if self == favoriteRemote then
+                    local cosmetic = CosmeticLibrary.Cosmetics[args[2]]
+                    if cosmetic and (cosmetic.Type == "Wrap" or cosmetic.Type == "Wrapping" or args[2]:lower():find("wrap")) then
+                        favorites[args[1]] = favorites[args[1]] or {}
+                        favorites[args[1]][args[2]] = args[3] or nil
+                        saveConfig()
+                        task.spawn(function() pcall(function() DataController.CurrentData:Replicate("FavoritedCosmetics") end) end)
+                    end
+                    return
+                end
+                return oldNamecall(self, ...)
+            end)
+        end
+    end
+
+    if ClientItem and ClientItem._CreateViewModel then
+        local originalCreateViewModelWrap = ClientItem._CreateViewModel
+        ClientItem._CreateViewModel = function(self, viewmodelRef)
+            local weaponName = self.Name
+            local weaponPlayer = self.ClientFighter and self.ClientFighter.Player
+            constructingWeapon = (weaponPlayer == player) and weaponName or nil
+            if weaponPlayer == player and equipped[weaponName] and equipped[weaponName].Wrap and viewmodelRef then
+                local dataKey, wrapKey, nameKey = self:ToEnum("Data"), self:ToEnum("Wrap"), self:ToEnum("Name")
+                if viewmodelRef[dataKey] then
+                    viewmodelRef[dataKey][wrapKey] = equipped[weaponName].Wrap
+                    viewmodelRef[dataKey][nameKey] = equipped[weaponName].Wrap.Name
+                elseif viewmodelRef.Data then
+                    viewmodelRef.Data.Wrap = equipped[weaponName].Wrap
+                    viewmodelRef.Data.Name = equipped[weaponName].Wrap.Name
+                end
+            end
+            local result = originalCreateViewModelWrap(self, viewmodelRef)
+            constructingWeapon = nil
+            return result
+        end
+    end
+
+    if viewModelModule then
+        local ClientViewModel = require(viewModelModule)
+        if ClientViewModel.GetWrap then
+            local originalGetWrapFunc = ClientViewModel.GetWrap
+            ClientViewModel.GetWrap = function(self)
+                local weaponName = self.ClientItem and self.ClientItem.Name
+                local weaponPlayer = self.ClientItem and self.ClientItem.ClientFighter and self.ClientItem.ClientFighter.Player
+                if weaponName and weaponPlayer == player and equipped[weaponName] and equipped[weaponName].Wrap then
+                    return equipped[weaponName].Wrap
+                end
+                return originalGetWrapFunc(self)
+            end
+        end
+        local originalNewWrap = ClientViewModel.new
+        ClientViewModel.new = function(replicatedData, clientItem)
+            local weaponPlayer = clientItem.ClientFighter and clientItem.ClientFighter.Player
+            local weaponName = constructingWeapon or clientItem.Name
+            if weaponPlayer == player and equipped[weaponName] then
+                local ReplicatedClass = require(ReplicatedStorage.Modules.ReplicatedClass)
+                local dataKey = ReplicatedClass:ToEnum("Data")
+                replicatedData[dataKey] = replicatedData[dataKey] or {}
+                local cosmetics = equipped[weaponName]
+                if cosmetics.Wrap then replicatedData[dataKey][ReplicatedClass:ToEnum("Wrap")] = cosmetics.Wrap end
+            end
+            local result = originalNewWrap(replicatedData, clientItem)
+            if weaponPlayer == player and equipped[weaponName] and equipped[weaponName].Wrap and result._UpdateWrap then
+                result:_UpdateWrap()
+                task.delay(0.1, function() if not result._destroyed then result:_UpdateWrap() end end)
+            end
+            return result
+        end
+    end
+
+    pcall(function()
+        local ViewProfile = require(player.PlayerScripts.Modules.Pages.ViewProfile)
+        if ViewProfile and ViewProfile.Fetch then
+            local originalFetch = ViewProfile.Fetch
+            ViewProfile.Fetch = function(self, targetPlayer)
+                viewingProfile = targetPlayer
+                return originalFetch(self, targetPlayer)
+            end
+        end
+    end)
+
+    loadConfig()
+    print("✅ 全皮膚解鎖已載入")
+end
+
+-- ===== Hub GUI =====
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = HttpService:GenerateGUID(false)
+screenGui.ResetOnSpawn = false
+screenGui.Parent = CoreGui
+
+local isDragging = false
+local dragStart, startPos
+
+local Panel = Instance.new("Frame")
+Panel.Size = UDim2.new(0, 280, 0, 350)
+Panel.Position = UDim2.new(0.5, -140, 0.5, -175)
+Panel.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+Panel.BorderSizePixel = 0
+Panel.Active = true
+Panel.ClipsDescendants = true
+Panel.Parent = screenGui
+Instance.new("UICorner", Panel).CornerRadius = UDim.new(0, 12)
+
+local TitleBar = Instance.new("Frame")
+TitleBar.Size = UDim2.new(1, 0, 0, 40)
+TitleBar.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+TitleBar.BorderSizePixel = 0
+TitleBar.Parent = Panel
+Instance.new("UICorner", TitleBar).CornerRadius = UDim.new(0, 12)
+
+local Title = Instance.new("TextLabel")
+Title.Size = UDim2.new(1, -40, 1, 0)
+Title.Position = UDim2.new(0, 10, 0, 0)
+Title.BackgroundTransparency = 1
+Title.Text = "狗狗給hub"
+Title.TextColor3 = Color3.fromRGB(255, 255, 255)
+Title.Font = Enum.Font.GothamBold
+Title.TextSize = 16
+Title.TextXAlignment = Enum.TextXAlignment.Left
+Title.Parent = TitleBar
+
+local MinBtn = Instance.new("TextButton")
+MinBtn.Size = UDim2.new(0, 30, 0, 30)
+MinBtn.Position = UDim2.new(1, -35, 0, 5)
+MinBtn.BackgroundColor3 = Color3.fromRGB(255, 70, 70)
+MinBtn.Text = "✕"
+MinBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+MinBtn.Font = Enum.Font.GothamBold
+MinBtn.TextSize = 18
+MinBtn.BorderSizePixel = 0
+Instance.new("UICorner", MinBtn).CornerRadius = UDim.new(0, 8)
+MinBtn.Parent = TitleBar
+
+local ScrollFrame = Instance.new("ScrollingFrame")
+ScrollFrame.Size = UDim2.new(1, -20, 1, -55)
+ScrollFrame.Position = UDim2.new(0, 10, 0, 45)
+ScrollFrame.BackgroundTransparency = 1
+ScrollFrame.BorderSizePixel = 0
+ScrollFrame.ScrollBarThickness = 3
+ScrollFrame.CanvasSize = UDim2.new(0, 0, 0, 290)
+ScrollFrame.Parent = Panel
+
+local function CreateToggleButton(name, yPos)
+    local container = Instance.new("Frame")
+    container.Size = UDim2.new(1, 0, 0, 45)
+    container.Position = UDim2.new(0, 0, 0, yPos)
+    container.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+    container.BorderSizePixel = 0
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, 20)
+    corner.Parent = container
+
+    local label = Instance.new("TextLabel")
+    label.Size = UDim2.new(1, -60, 1, 0)
+    label.Position = UDim2.new(0, 15, 0, 0)
+    label.BackgroundTransparency = 1
+    label.Text = name
+    label.TextColor3 = Color3.fromRGB(255, 255, 255)
+    label.Font = Enum.Font.Gotham
+    label.TextSize = 14
+    label.TextXAlignment = Enum.TextXAlignment.Left
+    label.Parent = container
+
+    local toggleBtn = Instance.new("TextButton")
+    toggleBtn.Size = UDim2.new(0, 50, 0, 30)
+    toggleBtn.Position = UDim2.new(1, -60, 0, 7)
+    toggleBtn.BackgroundColor3 = Color3.fromRGB(200, 0, 0)
+    toggleBtn.Text = "OFF"
+    toggleBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    toggleBtn.Font = Enum.Font.GothamBold
+    toggleBtn.TextSize = 14
+    toggleBtn.BorderSizePixel = 0
+    local btnCorner = Instance.new("UICorner")
+    btnCorner.CornerRadius = UDim.new(0, 15)
+    btnCorner.Parent = toggleBtn
+    toggleBtn.Parent = container
+
+    container.Parent = ScrollFrame
+    return toggleBtn
+end
+
+local function CreateSingleButton(name, yPos)
+    local btn = Instance.new("TextButton")
+    btn.Size = UDim2.new(1, 0, 0, 45)
+    btn.Position = UDim2.new(0, 0, 0, yPos)
+    btn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+    btn.Text = name
+    btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    btn.Font = Enum.Font.GothamBold
+    btn.TextSize = 16
+    btn.BorderSizePixel = 0
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, 20)
+    corner.Parent = btn
+    btn.Parent = ScrollFrame
+    return btn
+end
+
+local BW_Btn = CreateToggleButton("黑牆", 0)
+local SN_Btn = CreateToggleButton("速彈無後座", 50)
+local SA_Btn = CreateToggleButton("靜默瞄準", 100)
+
+-- 距離輸入框
+local function CreateRangeControl(yPos, callback)
+    local container = Instance.new("Frame")
+    container.Size = UDim2.new(1, 0, 0, 30)
+    container.Position = UDim2.new(0, 0, 0, yPos)
+    container.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+    container.BorderSizePixel = 0
+    Instance.new("UICorner", container).CornerRadius = UDim.new(0, 15)
+
+    local textBox = Instance.new("TextBox")
+    textBox.Size = UDim2.new(1, -20, 1, 0)
+    textBox.Position = UDim2.new(0, 10, 0, 0)
+    textBox.BackgroundTransparency = 1
+    textBox.Text = "∞ (無限)"
+    textBox.TextColor3 = Color3.fromRGB(255, 255, 255)
+    textBox.Font = Enum.Font.Gotham
+    textBox.TextSize = 14
+    textBox.ClearTextOnFocus = false
+    textBox.PlaceholderText = "輸入距離 (0=無限)"
+    textBox.Parent = container
+
+    local currentDist = 0
+
+    local function updateDisplay()
+        if currentDist == 0 then
+            textBox.Text = "∞ (無限)"
+        else
+            textBox.Text = tostring(currentDist) .. " studs"
+        end
+        callback(currentDist)
+    end
+
+    textBox.Focused:Connect(function()
+        textBox.SelectionStart = 1
+        task.wait()
+        textBox.CursorPosition = #textBox.Text + 1
+    end)
+
+    textBox.FocusLost:Connect(function(enterPressed)
+        local input = textBox.Text
+        local num = tonumber(input)
+        if num then
+            currentDist = math.max(0, math.floor(num))
+        end
+        updateDisplay()
+    end)
+
+    container.Parent = ScrollFrame
+end
+
+CreateRangeControl(145, function(dist)
+    SilentAim:SetRange(dist)
+end)
+
+local SKY_Btn = CreateToggleButton("星空", 180)
+local UA_Btn = CreateSingleButton("全皮解鎖 (點擊執行)", 230)
+
+-- 開關事件
+BW_Btn.Activated:Connect(function()
+    BlackWall.Enabled = not BlackWall.Enabled
+    if BlackWall.Enabled then
+        BlackWall:Enable()
+        BW_Btn.BackgroundColor3 = Color3.fromRGB(0, 180, 0)
+        BW_Btn.Text = "ON"
+    else
+        BlackWall:Disable()
+        BW_Btn.BackgroundColor3 = Color3.fromRGB(200, 0, 0)
+        BW_Btn.Text = "OFF"
+    end
+end)
+
+SN_Btn.Activated:Connect(function()
+    if SpeedNoRecoil.Enabled then
+        SpeedNoRecoil:Disable()
+        SN_Btn.BackgroundColor3 = Color3.fromRGB(200, 0, 0)
+        SN_Btn.Text = "OFF"
+    else
+        SpeedNoRecoil:Enable()
+        SN_Btn.BackgroundColor3 = Color3.fromRGB(0, 180, 0)
+        SN_Btn.Text = "ON"
+    end
+end)
+
+SA_Btn.Activated:Connect(function()
+    if SilentAim.Enabled then
+        SilentAim:Disable()
+        SA_Btn.BackgroundColor3 = Color3.fromRGB(200, 0, 0)
+        SA_Btn.Text = "OFF"
+    else
+        SilentAim:Enable()
+        SA_Btn.BackgroundColor3 = Color3.fromRGB(0, 180, 0)
+        SA_Btn.Text = "ON"
+    end
+end)
+
+SKY_Btn.Activated:Connect(function()
+    if OfficialSky.Enabled then
+        OfficialSky:Disable()
+        SKY_Btn.BackgroundColor3 = Color3.fromRGB(200, 0, 0)
+        SKY_Btn.Text = "OFF"
+    else
+        OfficialSky:Enable()
+        SKY_Btn.BackgroundColor3 = Color3.fromRGB(0, 180, 0)
+        SKY_Btn.Text = "ON"
+    end
+end)
+
+UA_Btn.Activated:Connect(function()
+    UA_Btn.Text = "執行中..."
+    UA_Btn.BackgroundColor3 = Color3.fromRGB(255, 170, 0)
+    task.spawn(function()
+        local success, err = pcall(ExecuteUnlockAll)
+        if success then
+            UA_Btn.Text = "✅ 已解鎖"
+            UA_Btn.BackgroundColor3 = Color3.fromRGB(0, 200, 100)
+        else
+            UA_Btn.Text = "❌ 失敗"
+            UA_Btn.BackgroundColor3 = Color3.fromRGB(200, 0, 0)
+            warn("全皮解鎖失敗：", err)
+        end
+        task.wait(2)
+        UA_Btn.Text = "全皮解鎖 (點擊執行)"
+        UA_Btn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+    end)
+end)
+
+-- 圓形
+local Circle = Instance.new("ImageButton")
+Circle.Size = UDim2.new(0, 70, 0, 70)
+Circle.Position = UDim2.new(0.5, -35, 0.5, -35)
+Circle.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+Circle.BackgroundTransparency = 1
+Circle.Image = "rbxassetid://0"
+Circle.Visible = false
+Circle.Parent = screenGui
+
+local CircleFrame = Instance.new("Frame")
+CircleFrame.Size = UDim2.new(1, 0, 1, 0)
+CircleFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+CircleFrame.BorderSizePixel = 0
+local CircleCorner = Instance.new("UICorner")
+CircleCorner.CornerRadius = UDim.new(1, 0)
+CircleCorner.Parent = CircleFrame
+CircleFrame.Parent = Circle
+
+local CircleLabel = Instance.new("TextLabel")
+CircleLabel.Size = UDim2.new(1, 0, 1, 0)
+CircleLabel.BackgroundTransparency = 1
+CircleLabel.Text = "HUB"
+CircleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+CircleLabel.Font = Enum.Font.GothamBold
+CircleLabel.TextSize = 18
+CircleLabel.Parent = CircleFrame
+
+local function SwitchToCircle()
+    Panel.Visible = false
+    Circle.Visible = true
+end
+
+local function SwitchToPanel()
+    Circle.Visible = false
+    Panel.Visible = true
+end
+
+MinBtn.Activated:Connect(SwitchToCircle)
+Circle.Activated:Connect(SwitchToPanel)
+
+-- 拖曳
+Circle.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.Touch then
+        isDragging = true
+        dragStart = input.Position
+        startPos = Circle.Position
+        input.Changed:Connect(function()
+            if input.UserInputState == Enum.UserInputState.End then
+                isDragging = false
+            end
+        end)
+    end
+end)
+
+UserInputService.TouchMoved:Connect(function(touch, gameProcessed)
+    if not isDragging then return end
+    local delta = touch.Position - dragStart
+    Circle.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+end)
+
+TitleBar.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.Touch then
+        isDragging = true
+        dragStart = input.Position
+        startPos = Panel.Position
+        input.Changed:Connect(function()
+            if input.UserInputState == Enum.UserInputState.End then
+                isDragging = false
+            end
+        end)
+    end
+end)
+
+print("狗狗給hub 已加載 | 防封已啟用 | 距離輸入框已改")
