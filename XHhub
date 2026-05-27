@@ -1,1194 +1,530 @@
---[[
-    狗狗給hub - 最終完整版（全皮已內嵌）
---]]
-
--- ===== 防封 =====
-local function safeAntiBan()
-    pcall(function()
-        local CoreGui = game:GetService("CoreGui")
-        pcall(function()
-            if syn and syn.protect_gui then
-                syn.protect_gui(CoreGui)
-            end
-        end)
-        pcall(function()
-            if setfflag then
-                setfflag("AbuseReportScreenshot", "False")
-                setfflag("AbuseReportScreenshotPercentage", "0")
-            end
-        end)
-        task.wait(math.random(100, 300) / 1000)
-        pcall(function()
-            local mt = getrawmetatable(game)
-            local old = mt.__namecall
-            setreadonly(mt, false)
-            mt.__namecall = function(self, ...)
-                local method = getnamecallmethod()
-                if method == "GetObjects" or method == "HttpGet" then
-                    return old(self, ...)
-                end
-                return old(self, ...)
-            end
-            setreadonly(mt, true)
-        end)
-    end)
-end
-safeAntiBan()
-
--- ===== 服務 =====
+-- 星輝輔助hub 完整修復版（靜默增強 + 雙穿牆 + 全皮）
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
-local RunService = game:GetService("RunService")
 local CoreGui = game:GetService("CoreGui")
 local UserInputService = game:GetService("UserInputService")
-local HttpService = game:GetService("HttpService")
+local TweenService = game:GetService("TweenService")
+local RunService = game:GetService("RunService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Lighting = game:GetService("Lighting")
+local Workspace = game:GetService("Workspace")
+local Camera = Workspace.CurrentCamera
+local HttpService = game:GetService("HttpService")
 
--- ===== 功能 =====
+-- ===== 防封 =====
+pcall(function()
+    if syn and syn.protect_gui then syn.protect_gui(CoreGui) end
+    if setfflag then setfflag("AbuseReportScreenshot","False") setfflag("AbuseReportScreenshotPercentage","0") end
+end)
 
--- 1. 黑牆
-local BlackWall = {
-    Enabled = false,
-    Connection = nil,
-    TARGET_NAMES = {"Part", "Truss", "Floor", "Wall"},
-    DARK_COLOR = Color3.new(0.15, 0.15, 0.15),
-    Enable = function(self)
-        if self.Connection then return end
-        self.Connection = RunService.RenderStepped:Connect(function()
-            pcall(function()
-                for _, part in ipairs(workspace:GetDescendants()) do
-                    if part:IsA("BasePart") then
-                        for _, name in ipairs(self.TARGET_NAMES) do
-                            if part.Name == name then
-                                part.Color = self.DARK_COLOR
-                                break
-                            end
-                        end
-                    end
-                end
-            end)
-        end)
-    end,
-    Disable = function(self)
-        if self.Connection then
-            self.Connection:Disconnect()
-            self.Connection = nil
-        end
-    end
-}
+-- ===== 黑牆 =====
+local BlackWall = {Enabled=false,Connection=nil,TARGET_NAMES={"Part","Truss","Floor","Wall"},DARK_COLOR=Color3.new(0.15,0.15,0.15),Enable=function(self)if self.Connection then return end self.Connection=RunService.RenderStepped:Connect(function()pcall(function()for _,part in ipairs(workspace:GetDescendants())do if part:IsA("BasePart")then for _,name in ipairs(self.TARGET_NAMES)do if part.Name==name then part.Color=self.DARK_COLOR break end end end end end)end)end,Disable=function(self)if self.Connection then self.Connection:Disconnect()self.Connection=nil end end}
 
--- 2. 速彈無後座
-local SpeedNoRecoil = {
-    Enabled = false,
-    HookSetup = false,
-    Enable = function(self)
-        if self.Enabled then return end
-        self.Enabled = true
-        if not self.HookSetup then
-            self:_setup()
-            self.HookSetup = true
-        end
-    end,
-    Disable = function(self)
-        self.Enabled = false
-    end,
-    _setup = function(self)
-        pcall(function()
-            local PS = LocalPlayer:WaitForChild("PlayerScripts")
-            local ClientItem = PS:WaitForChild("Modules"):WaitForChild("ClientReplicatedClasses"):WaitForChild("ClientFighter"):WaitForChild("ClientItem")
-            local m = require(ClientItem)
-            local orig = m.Input
-            m.Input = function(...)
-                local args = {...}
-                if self.Enabled and args[1] and args[1].Info then
-                    args[1].Info.ShootRecoil = 0
-                    args[1].Info.ShootSpread = 0
-                    args[1].Info.ProjectileSpeed = 99999999
-                    args[1].Info.ShootCooldown = 0
-                    args[1].Info.QuickShotCooldown = 0
-                end
-                return orig(...)
-            end
-        end)
-    end
-}
+-- ===== 速彈無後座 =====
+local SpeedNoRecoil = {Enabled=false,HookSetup=false,Enable=function(self)if self.Enabled then return end self.Enabled=true if not self.HookSetup then self:_setup()self.HookSetup=true end end,Disable=function(self)self.Enabled=false end,_setup=function(self)pcall(function()local PS=LocalPlayer:WaitForChild("PlayerScripts")local CI=PS:WaitForChild("Modules"):WaitForChild("ClientReplicatedClasses"):WaitForChild("ClientFighter"):WaitForChild("ClientItem")local m=require(CI)local orig=m.Input m.Input=function(...)local args={...}if self.Enabled and args[1]and args[1].Info then args[1].Info.ShootRecoil=0 args[1].Info.ShootSpread=0 args[1].Info.ProjectileSpeed=99999999 args[1].Info.ShootCooldown=0 args[1].Info.QuickShotCooldown=0 end return orig(...)end end)end}
 
--- 3. 靜默瞄準（可輸入數字調距離）
+-- ===== 靜默瞄準（底層Hook增強版）=====
 local SilentAim = {
     Enabled = false,
-    HookSetup = false,
-    MaxDistance = 0,
-    Enable = function(self)
-        if self.Enabled then return end
-        self.Enabled = true
-        if not self.HookSetup then
-            self:_setup()
-            self.HookSetup = true
-        end
-    end,
-    Disable = function(self)
-        self.Enabled = false
-    end,
-    SetRange = function(self, dist)
-        self.MaxDistance = tonumber(dist) or 0
-    end,
-    _setup = function(self)
-        pcall(function()
-            local Utility = require(ReplicatedStorage:WaitForChild("Modules"):WaitForChild("Utility"))
-            local orig = Utility.Raycast
-            local function getClosestHead()
-                local char = LocalPlayer.Character
-                if not char then return nil end
-                local root = char:FindFirstChild("HumanoidRootPart")
-                if not root then return nil end
-                local myPos = root.Position
-                local bestHead, bestDist = nil, math.huge
-                for _, plr in ipairs(Players:GetPlayers()) do
-                    if plr == LocalPlayer then continue end
-                    local head = plr.Character and plr.Character:FindFirstChild("Head")
-                    if head then
-                        local dist = (head.Position - myPos).Magnitude
-                        if self.MaxDistance > 0 and dist > self.MaxDistance then
-                            continue
-                        end
-                        if dist < bestDist then
-                            bestDist = dist
-                            bestHead = head
-                        end
-                    end
-                end
-                return bestHead
-            end
-            Utility.Raycast = function(origin, direction, target, ...)
-                if self.Enabled and (typeof(target) == "Vector3" or typeof(target) == "vector") then
-                    local head = getClosestHead()
-                    if head then
-                        target = head.Position
-                    end
-                end
-                return orig(origin, direction, target, ...)
-            end
-        end)
-    end
+    TeamCheck = false,
+    AimPart = "Head",
+    LimitRange = false,
+    MaxDistance = 300,
+    CurrentTarget = nil,
+    Hooked = false
 }
 
--- 4. 星空
-local OfficialSky = {
-    Enabled = false,
-    SkyInstance = nil,
-    OfficialIds = {
-        Ft = "2570432998", Bk = "2570432999", Lf = "2570433000",
-        Rt = "2570432997", Up = "2570432996", Dn = "2570433005",
-    },
-    Enable = function(self)
-        if self.Enabled then return end
-        self.Enabled = true
-        self:clearSky()
-        local sky = Instance.new("Sky", Lighting)
-        sky.SkyboxFt = "rbxassetid://" .. self.OfficialIds.Ft
-        sky.SkyboxBk = "rbxassetid://" .. self.OfficialIds.Bk
-        sky.SkyboxLf = "rbxassetid://" .. self.OfficialIds.Lf
-        sky.SkyboxRt = "rbxassetid://" .. self.OfficialIds.Rt
-        sky.SkyboxUp = "rbxassetid://" .. self.OfficialIds.Up
-        sky.SkyboxDn = "rbxassetid://" .. self.OfficialIds.Dn
-        self.SkyInstance = sky
-    end,
-    Disable = function(self)
-        self.Enabled = false
-        self:clearSky()
-    end,
-    clearSky = function(self)
-        for _, obj in ipairs(Lighting:GetChildren()) do
-            if obj:IsA("Sky") then obj:Destroy() end
+local function getClosestEnemy()
+    local myChar = LocalPlayer.Character
+    if not myChar then return nil end
+    local myRoot = myChar:FindFirstChild("HumanoidRootPart")
+    if not myRoot then return nil end
+    local myPos = myRoot.Position
+    local best, bestDist = nil, math.huge
+    for _, plr in ipairs(Players:GetPlayers()) do
+        if plr == LocalPlayer then continue end
+        if SilentAim.TeamCheck then
+            if LocalPlayer.Team and plr.Team == LocalPlayer.Team then continue end
+            local team1 = LocalPlayer:GetAttribute("TeamID")
+            local team2 = plr:GetAttribute("TeamID")
+            if team1 and team2 and team1 == team2 then continue end
         end
-        self.SkyInstance = nil
+        local char = plr.Character
+        if not char then continue end
+        local part = char:FindFirstChild(SilentAim.AimPart)
+        local hum = char:FindFirstChildWhichIsA("Humanoid")
+        if not (part and hum and hum.Health > 0) then continue end
+        local dist = (part.Position - myPos).Magnitude
+        if SilentAim.LimitRange and dist > SilentAim.MaxDistance then continue end
+        if dist < bestDist then bestDist = dist best = part end
     end
-}
-
--- 5. 全皮解鎖（完整）
-local function ExecuteUnlockAll()
-    local Players = game:GetService("Players")
-    local ReplicatedStorage = game:GetService("ReplicatedStorage")
-    local HttpService = game:GetService("HttpService")
-    local player = Players.LocalPlayer
-    local playerScripts = player.PlayerScripts
-    local controllers = playerScripts.Controllers
-
-    local EnumLibrary = require(ReplicatedStorage.Modules:WaitForChild("EnumLibrary", 10))
-    if EnumLibrary then EnumLibrary:WaitForEnumBuilder() end
-
-    local CosmeticLibrary = require(ReplicatedStorage.Modules:WaitForChild("CosmeticLibrary", 10))
-    local ItemLibrary = require(ReplicatedStorage.Modules:WaitForChild("ItemLibrary", 10))
-    local DataController = require(controllers:WaitForChild("PlayerDataController", 10))
-
-    local equipped, favorites = {}, {}
-    local constructingWeapon, viewingProfile = nil, nil
-    local lastUsedWeapon = nil
-
-    local function cloneCosmetic(name, cosmeticType, options)
-        local base = CosmeticLibrary.Cosmetics[name]
-        if not base then return nil end
-        local data = {}
-        for key, value in pairs(base) do data[key] = value end
-        data.Name = name
-        data.Type = data.Type or cosmeticType
-        data.Seed = data.Seed or math.random(1, 1000000)
-        if EnumLibrary then
-            local success, enumId = pcall(EnumLibrary.ToEnum, EnumLibrary, name)
-            if success and enumId then data.Enum, data.ObjectID = enumId, data.ObjectID or enumId end
-        end
-        if options then
-            if options.inverted ~= nil then data.Inverted = options.inverted end
-            if options.favoritesOnly ~= nil then data.OnlyUseFavorites = options.favoritesOnly end
-        end
-        return data
-    end
-
-    local saveFile = "unlockall/config.json"
-    local function saveConfig()
-        if not writefile then return end
-        pcall(function()
-            local config = {equipped = {}, favorites = favorites}
-            for weapon, cosmetics in pairs(equipped) do
-                config.equipped[weapon] = {}
-                for cosmeticType, cosmeticData in pairs(cosmetics) do
-                    if cosmeticData and cosmeticData.Name then
-                        config.equipped[weapon][cosmeticType] = {
-                            name = cosmeticData.Name, seed = cosmeticData.Seed, inverted = cosmeticData.Inverted
-                        }
-                    end
-                end
-            end
-            makefolder("unlockall")
-            writefile(saveFile, HttpService:JSONEncode(config))
-        end)
-    end
-
-    local function loadConfig()
-        if not readfile or not isfile or not isfile(saveFile) then return end
-        pcall(function()
-            local config = HttpService:JSONDecode(readfile(saveFile))
-            if config.equipped then
-                for weapon, cosmetics in pairs(config.equipped) do
-                    equipped[weapon] = {}
-                    for cosmeticType, cosmeticData in pairs(cosmetics) do
-                        local cloned = cloneCosmetic(cosmeticData.name, cosmeticType, {inverted = cosmeticData.inverted})
-                        if cloned then cloned.Seed = cosmeticData.seed equipped[weapon][cosmeticType] = cloned end
-                    end
-                end
-            end
-            favorites = config.favorites or {}
-        end)
-    end
-
-    -- HOOK SKINS
-    CosmeticLibrary.OwnsCosmeticNormally = function(self, inventory, name, weapon)
-        local cosmetic = CosmeticLibrary.Cosmetics[name]
-        if cosmetic and cosmetic.Type == "Skin" then return true end
-        return false
-    end
-    CosmeticLibrary.OwnsCosmeticUniversally = function(self, inventory, name, weapon)
-        local cosmetic = CosmeticLibrary.Cosmetics[name]
-        if cosmetic and cosmetic.Type == "Skin" then return true end
-        return false
-    end
-    CosmeticLibrary.OwnsCosmeticForWeapon = function(self, inventory, name, weapon)
-        local cosmetic = CosmeticLibrary.Cosmetics[name]
-        if cosmetic and cosmetic.Type == "Skin" then return true end
-        return false
-    end
-    local originalOwnsCosmetic = CosmeticLibrary.OwnsCosmetic
-    CosmeticLibrary.OwnsCosmetic = function(self, inventory, name, weapon)
-        if name:find("MISSING_") then return originalOwnsCosmetic(self, inventory, name, weapon) end
-        local cosmetic = CosmeticLibrary.Cosmetics[name]
-        if cosmetic and cosmetic.Type == "Skin" then return true end
-        return originalOwnsCosmetic(self, inventory, name, weapon)
-    end
-
-    local originalGet = DataController.Get
-    DataController.Get = function(self, key)
-        local data = originalGet(self, key)
-        if key == "CosmeticInventory" then
-            local proxy = {}
-            if data then for k, v in pairs(data) do 
-                local cosmetic = CosmeticLibrary.Cosmetics[k]
-                if cosmetic and cosmetic.Type == "Skin" then proxy[k] = v end
-            end end
-            return setmetatable(proxy, {__index = function(t, k)
-                local cosmetic = CosmeticLibrary.Cosmetics[k]
-                if cosmetic and cosmetic.Type == "Skin" then return true end
-                return nil
-            end})
-        end
-        if key == "FavoritedCosmetics" then
-            local result = data and table.clone(data) or {}
-            for weapon, favs in pairs(favorites) do
-                result[weapon] = result[weapon] or {}
-                for name, isFav in pairs(favs) do 
-                    local cosmetic = CosmeticLibrary.Cosmetics[name]
-                    if cosmetic and cosmetic.Type == "Skin" then result[weapon][name] = isFav end
-                end
-            end
-            return result
-        end
-        return data
-    end
-
-    local originalGetWeaponData = DataController.GetWeaponData
-    DataController.GetWeaponData = function(self, weaponName)
-        local data = originalGetWeaponData(self, weaponName)
-        if not data then return nil end
-        local merged = {}
-        for key, value in pairs(data) do merged[key] = value end
-        merged.Name = weaponName
-        if equipped[weaponName] then
-            for cosmeticType, cosmeticData in pairs(equipped[weaponName]) do 
-                if cosmeticType == "Skin" then merged[cosmeticType] = cosmeticData end
-            end
-        end
-        return merged
-    end
-
-    local FighterController
-    pcall(function() FighterController = require(controllers:WaitForChild("FighterController", 10)) end)
-
-    if hookmetamethod then
-        local remotes = ReplicatedStorage:FindFirstChild("Remotes")
-        local dataRemotes = remotes and remotes:FindFirstChild("Data")
-        local equipRemote = dataRemotes and dataRemotes:FindFirstChild("EquipCosmetic")
-        local favoriteRemote = dataRemotes and dataRemotes:FindFirstChild("FavoriteCosmetic")
-        local replicationRemotes = remotes and remotes:FindFirstChild("Replication")
-        local fighterRemotes = replicationRemotes and replicationRemotes:FindFirstChild("Fighter")
-        local useItemRemote = fighterRemotes and fighterRemotes:FindFirstChild("UseItem")
-        
-        if equipRemote then
-            local oldNamecall
-            oldNamecall = hookmetamethod(game, "__namecall", function(self, ...)
-                if getnamecallmethod() ~= "FireServer" then return oldNamecall(self, ...) end
-                local args = {...}
-                if useItemRemote and self == useItemRemote then
-                    local objectID = args[1]
-                    if FighterController then
-                        pcall(function()
-                            local fighter = FighterController:GetFighter(player)
-                            if fighter and fighter.Items then
-                                for _, item in pairs(fighter.Items) do
-                                    if item:Get("ObjectID") == objectID then lastUsedWeapon = item.Name break end
-                                end
-                            end
-                        end)
-                    end
-                end
-                if self == equipRemote then
-                    local weaponName, cosmeticType, cosmeticName, options = args[1], args[2], args[3], args[4] or {}
-                    if cosmeticType ~= "Skin" then return oldNamecall(self, ...) end
-                    if cosmeticName and cosmeticName ~= "None" and cosmeticName ~= "" then
-                        local inventory = DataController:Get("CosmeticInventory")
-                        if inventory and rawget(inventory, cosmeticName) then return oldNamecall(self, ...) end
-                    end
-                    equipped[weaponName] = equipped[weaponName] or {}
-                    if not cosmeticName or cosmeticName == "None" or cosmeticName == "" then
-                        equipped[weaponName][cosmeticType] = nil
-                        if not next(equipped[weaponName]) then equipped[weaponName] = nil end
-                    else
-                        local cloned = cloneCosmetic(cosmeticName, cosmeticType, {inverted = options.IsInverted, favoritesOnly = options.OnlyUseFavorites})
-                        if cloned then equipped[weaponName][cosmeticType] = cloned end
-                    end
-                    task.defer(function()
-                        pcall(function() DataController.CurrentData:Replicate("WeaponInventory") end)
-                        task.wait(0.2)
-                        saveConfig()
-                    end)
-                    return
-                end
-                if self == favoriteRemote then
-                    local cosmetic = CosmeticLibrary.Cosmetics[args[2]]
-                    if cosmetic and cosmetic.Type == "Skin" then
-                        favorites[args[1]] = favorites[args[1]] or {}
-                        favorites[args[1]][args[2]] = args[3] or nil
-                        saveConfig()
-                        task.spawn(function() pcall(function() DataController.CurrentData:Replicate("FavoritedCosmetics") end) end)
-                    end
-                    return
-                end
-                return oldNamecall(self, ...)
-            end)
-        end
-    end
-
-    local ClientItem
-    pcall(function() ClientItem = require(player.PlayerScripts.Modules.ClientReplicatedClasses.ClientFighter.ClientItem) end)
-
-    if ClientItem and ClientItem._CreateViewModel then
-        local originalCreateViewModel = ClientItem._CreateViewModel
-        ClientItem._CreateViewModel = function(self, viewmodelRef)
-            local weaponName = self.Name
-            local weaponPlayer = self.ClientFighter and self.ClientFighter.Player
-            constructingWeapon = (weaponPlayer == player) and weaponName or nil
-            if weaponPlayer == player and equipped[weaponName] and equipped[weaponName].Skin and viewmodelRef then
-                local dataKey, skinKey, nameKey = self:ToEnum("Data"), self:ToEnum("Skin"), self:ToEnum("Name")
-                if viewmodelRef[dataKey] then
-                    viewmodelRef[dataKey][skinKey] = equipped[weaponName].Skin
-                    viewmodelRef[dataKey][nameKey] = equipped[weaponName].Skin.Name
-                elseif viewmodelRef.Data then
-                    viewmodelRef.Data.Skin = equipped[weaponName].Skin
-                    viewmodelRef.Data.Name = equipped[weaponName].Skin.Name
-                end
-            end
-            local result = originalCreateViewModel(self, viewmodelRef)
-            constructingWeapon = nil
-            return result
-        end
-    end
-
-    local viewModelModule = player.PlayerScripts.Modules.ClientReplicatedClasses.ClientFighter.ClientItem:FindFirstChild("ClientViewModel")
-    if viewModelModule then
-        local ClientViewModel = require(viewModelModule)
-        local originalNew = ClientViewModel.new
-        ClientViewModel.new = function(replicatedData, clientItem)
-            local weaponPlayer = clientItem.ClientFighter and clientItem.ClientFighter.Player
-            local weaponName = constructingWeapon or clientItem.Name
-            if weaponPlayer == player and equipped[weaponName] then
-                local ReplicatedClass = require(ReplicatedStorage.Modules.ReplicatedClass)
-                local dataKey = ReplicatedClass:ToEnum("Data")
-                replicatedData[dataKey] = replicatedData[dataKey] or {}
-                local cosmetics = equipped[weaponName]
-                if cosmetics.Skin then replicatedData[dataKey][ReplicatedClass:ToEnum("Skin")] = cosmetics.Skin end
-            end
-            local result = originalNew(replicatedData, clientItem)
-            return result
-        end
-    end
-
-    local originalGetViewModelImage = ItemLibrary.GetViewModelImageFromWeaponData
-    ItemLibrary.GetViewModelImageFromWeaponData = function(self, weaponData, highRes)
-        if not weaponData then return originalGetViewModelImage(self, weaponData, highRes) end
-        local weaponName = weaponData.Name
-        local shouldShowSkin = (weaponData.Skin and equipped[weaponName] and weaponData.Skin == equipped[weaponName].Skin) or (viewingProfile == player and equipped[weaponName] and equipped[weaponName].Skin)
-        if shouldShowSkin and equipped[weaponName] and equipped[weaponName].Skin then
-            local skinInfo = self.ViewModels[equipped[weaponName].Skin.Name]
-            if skinInfo then return skinInfo[highRes and "ImageHighResolution" or "Image"] or skinInfo.Image end
-        end
-        return originalGetViewModelImage(self, weaponData, highRes)
-    end
-
-    -- HOOK CHARMS
-    local originalOwnsCosmeticCharm = CosmeticLibrary.OwnsCosmetic
-    CosmeticLibrary.OwnsCosmetic = function(self, inventory, name, weapon)
-        if name:find("MISSING_") then return originalOwnsCosmeticCharm(self, inventory, name, weapon) end
-        local cosmetic = CosmeticLibrary.Cosmetics[name]
-        if cosmetic and (cosmetic.Type == "Charm" or name:lower():find("charm")) then return true end
-        return originalOwnsCosmeticCharm(self, inventory, name, weapon)
-    end
-
-    local originalGetCharm = DataController.Get
-    DataController.Get = function(self, key)
-        local data = originalGetCharm(self, key)
-        if key == "CosmeticInventory" then
-            local proxy = {}
-            if data then for k, v in pairs(data) do 
-                local cosmetic = CosmeticLibrary.Cosmetics[k]
-                if cosmetic and (cosmetic.Type == "Charm" or k:lower():find("charm")) then proxy[k] = v end
-            end end
-            return setmetatable(proxy, {__index = function(t, k)
-                local cosmetic = CosmeticLibrary.Cosmetics[k]
-                if cosmetic and (cosmetic.Type == "Charm" or k:lower():find("charm")) then return true end
-                return nil
-            end})
-        end
-        if key == "FavoritedCosmetics" then
-            local result = data and table.clone(data) or {}
-            for weapon, favs in pairs(favorites) do
-                result[weapon] = result[weapon] or {}
-                for name, isFav in pairs(favs) do 
-                    local cosmetic = CosmeticLibrary.Cosmetics[name]
-                    if cosmetic and (cosmetic.Type == "Charm" or name:lower():find("charm")) then result[weapon][name] = isFav end
-                end
-            end
-            return result
-        end
-        return data
-    end
-
-    if hookmetamethod then
-        local remotes = ReplicatedStorage:FindFirstChild("Remotes")
-        local dataRemotes = remotes and remotes:FindFirstChild("Data")
-        local equipRemote = dataRemotes and dataRemotes:FindFirstChild("EquipCosmetic")
-        local favoriteRemote = dataRemotes and dataRemotes:FindFirstChild("FavoriteCosmetic")
-        
-        if equipRemote then
-            local oldNamecall
-            oldNamecall = hookmetamethod(game, "__namecall", function(self, ...)
-                if getnamecallmethod() ~= "FireServer" then return oldNamecall(self, ...) end
-                local args = {...}
-                if self == equipRemote then
-                    local weaponName, cosmeticType, cosmeticName, options = args[1], args[2], args[3], args[4] or {}
-                    if cosmeticType ~= "Charm" then return oldNamecall(self, ...) end
-                    if cosmeticName and cosmeticName ~= "None" and cosmeticName ~= "" then
-                        local inventory = DataController:Get("CosmeticInventory")
-                        if inventory and rawget(inventory, cosmeticName) then return oldNamecall(self, ...) end
-                    end
-                    equipped[weaponName] = equipped[weaponName] or {}
-                    if not cosmeticName or cosmeticName == "None" or cosmeticName == "" then
-                        equipped[weaponName][cosmeticType] = nil
-                        if not next(equipped[weaponName]) then equipped[weaponName] = nil end
-                    else
-                        local cloned = cloneCosmetic(cosmeticName, cosmeticType, {inverted = options.IsInverted, favoritesOnly = options.OnlyUseFavorites})
-                        if cloned then equipped[weaponName][cosmeticType] = cloned end
-                    end
-                    task.defer(function()
-                        pcall(function() DataController.CurrentData:Replicate("WeaponInventory") end)
-                        task.wait(0.2)
-                        saveConfig()
-                    end)
-                    return
-                end
-                if self == favoriteRemote then
-                    local cosmetic = CosmeticLibrary.Cosmetics[args[2]]
-                    if cosmetic and (cosmetic.Type == "Charm" or args[2]:lower():find("charm")) then
-                        favorites[args[1]] = favorites[args[1]] or {}
-                        favorites[args[1]][args[2]] = args[3] or nil
-                        saveConfig()
-                        task.spawn(function() pcall(function() DataController.CurrentData:Replicate("FavoritedCosmetics") end) end)
-                    end
-                    return
-                end
-                return oldNamecall(self, ...)
-            end)
-        end
-    end
-
-    if ClientItem and ClientItem._CreateViewModel then
-        local originalCreateViewModelCharm = ClientItem._CreateViewModel
-        ClientItem._CreateViewModel = function(self, viewmodelRef)
-            local weaponName = self.Name
-            local weaponPlayer = self.ClientFighter and self.ClientFighter.Player
-            constructingWeapon = (weaponPlayer == player) and weaponName or nil
-            if weaponPlayer == player and equipped[weaponName] and equipped[weaponName].Charm and viewmodelRef then
-                local dataKey, charmKey, nameKey = self:ToEnum("Data"), self:ToEnum("Charm"), self:ToEnum("Name")
-                if viewmodelRef[dataKey] then
-                    viewmodelRef[dataKey][charmKey] = equipped[weaponName].Charm
-                    viewmodelRef[dataKey][nameKey] = equipped[weaponName].Charm.Name
-                elseif viewmodelRef.Data then
-                    viewmodelRef.Data.Charm = equipped[weaponName].Charm
-                    viewmodelRef.Data.Name = equipped[weaponName].Charm.Name
-                end
-            end
-            local result = originalCreateViewModelCharm(self, viewmodelRef)
-            constructingWeapon = nil
-            return result
-        end
-    end
-
-    if viewModelModule then
-        local ClientViewModel = require(viewModelModule)
-        if ClientViewModel.GetCharm then
-            local originalGetCharmFunc = ClientViewModel.GetCharm
-            ClientViewModel.GetCharm = function(self)
-                local weaponName = self.ClientItem and self.ClientItem.Name
-                local weaponPlayer = self.ClientItem and self.ClientItem.ClientFighter and self.ClientItem.ClientFighter.Player
-                if weaponName and weaponPlayer == player and equipped[weaponName] and equipped[weaponName].Charm then
-                    return equipped[weaponName].Charm
-                end
-                return originalGetCharmFunc(self)
-            end
-        end
-        local originalNewCharm = ClientViewModel.new
-        ClientViewModel.new = function(replicatedData, clientItem)
-            local weaponPlayer = clientItem.ClientFighter and clientItem.ClientFighter.Player
-            local weaponName = constructingWeapon or clientItem.Name
-            if weaponPlayer == player and equipped[weaponName] then
-                local ReplicatedClass = require(ReplicatedStorage.Modules.ReplicatedClass)
-                local dataKey = ReplicatedClass:ToEnum("Data")
-                replicatedData[dataKey] = replicatedData[dataKey] or {}
-                local cosmetics = equipped[weaponName]
-                if cosmetics.Charm then replicatedData[dataKey][ReplicatedClass:ToEnum("Charm")] = cosmetics.Charm end
-            end
-            local result = originalNewCharm(replicatedData, clientItem)
-            return result
-        end
-    end
-
-    -- HOOK DANCES
-    local originalOwnsCosmeticDance = CosmeticLibrary.OwnsCosmetic
-    CosmeticLibrary.OwnsCosmetic = function(self, inventory, name, weapon)
-        if name:find("MISSING_") then return originalOwnsCosmeticDance(self, inventory, name, weapon) end
-        local cosmetic = CosmeticLibrary.Cosmetics[name]
-        if cosmetic and (cosmetic.Type == "Dance" or cosmetic.Type == "Emote" or name:lower():find("dance") or name:lower():find("emote")) then return true end
-        return originalOwnsCosmeticDance(self, inventory, name, weapon)
-    end
-
-    local originalGetDance = DataController.Get
-    DataController.Get = function(self, key)
-        local data = originalGetDance(self, key)
-        if key == "CosmeticInventory" then
-            local proxy = {}
-            if data then for k, v in pairs(data) do 
-                local cosmetic = CosmeticLibrary.Cosmetics[k]
-                if cosmetic and (cosmetic.Type == "Dance" or cosmetic.Type == "Emote" or k:lower():find("dance") or k:lower():find("emote")) then proxy[k] = v end
-            end end
-            return setmetatable(proxy, {__index = function(t, k)
-                local cosmetic = CosmeticLibrary.Cosmetics[k]
-                if cosmetic and (cosmetic.Type == "Dance" or cosmetic.Type == "Emote" or k:lower():find("dance") or k:lower():find("emote")) then return true end
-                return nil
-            end})
-        end
-        if key == "FavoritedCosmetics" then
-            local result = data and table.clone(data) or {}
-            for weapon, favs in pairs(favorites) do
-                result[weapon] = result[weapon] or {}
-                for name, isFav in pairs(favs) do 
-                    local cosmetic = CosmeticLibrary.Cosmetics[name]
-                    if cosmetic and (cosmetic.Type == "Dance" or cosmetic.Type == "Emote" or name:lower():find("dance") or name:lower():find("emote")) then result[weapon][name] = isFav end
-                end
-            end
-            return result
-        end
-        return data
-    end
-
-    if hookmetamethod then
-        local remotes = ReplicatedStorage:FindFirstChild("Remotes")
-        local dataRemotes = remotes and remotes:FindFirstChild("Data")
-        local equipRemote = dataRemotes and dataRemotes:FindFirstChild("EquipCosmetic")
-        local favoriteRemote = dataRemotes and dataRemotes:FindFirstChild("FavoriteCosmetic")
-        
-        if equipRemote then
-            local oldNamecall
-            oldNamecall = hookmetamethod(game, "__namecall", function(self, ...)
-                if getnamecallmethod() ~= "FireServer" then return oldNamecall(self, ...) end
-                local args = {...}
-                if self == equipRemote then
-                    local weaponName, cosmeticType, cosmeticName, options = args[1], args[2], args[3], args[4] or {}
-                    if cosmeticType == "Dance" or cosmeticType == "Emote" or (cosmeticName and (cosmeticName:lower():find("dance") or cosmeticName:lower():find("emote"))) then
-                        equipped.Dances = equipped.Dances or {}
-                        if not cosmeticName or cosmeticName == "None" or cosmeticName == "" then
-                            equipped.Dances[cosmeticType] = nil
-                        else
-                            local cloned = cloneCosmetic(cosmeticName, cosmeticType, {inverted = options.IsInverted, favoritesOnly = options.OnlyUseFavorites})
-                            if cloned then equipped.Dances[cosmeticType] = cloned end
-                        end
-                        task.defer(function()
-                            pcall(function() DataController.CurrentData:Replicate("CosmeticInventory") end)
-                            task.wait(0.2)
-                            saveConfig()
-                        end)
-                        return
-                    end
-                    return oldNamecall(self, ...)
-                end
-                if self == favoriteRemote then
-                    local cosmetic = CosmeticLibrary.Cosmetics[args[2]]
-                    if cosmetic and (cosmetic.Type == "Dance" or cosmetic.Type == "Emote" or args[2]:lower():find("dance") or args[2]:lower():find("emote")) then
-                        favorites[args[1]] = favorites[args[1]] or {}
-                        favorites[args[1]][args[2]] = args[3] or nil
-                        saveConfig()
-                        task.spawn(function() pcall(function() DataController.CurrentData:Replicate("FavoritedCosmetics") end) end)
-                    end
-                    return
-                end
-                return oldNamecall(self, ...)
-            end)
-        end
-    end
-
-    local EmoteController
-    pcall(function() 
-        EmoteController = require(controllers:WaitForChild("EmoteController", 10))
-        if EmoteController and EmoteController.GetEmotes then
-            local originalGetEmotes = EmoteController.GetEmotes
-            EmoteController.GetEmotes = function(self)
-                local emotes = originalGetEmotes(self)
-                for name, cosmetic in pairs(CosmeticLibrary.Cosmetics) do
-                    if cosmetic and (cosmetic.Type == "Dance" or cosmetic.Type == "Emote" or name:lower():find("dance") or name:lower():find("emote")) then
-                        if not emotes[name] then
-                            emotes[name] = {
-                                Name = name,
-                                Type = cosmetic.Type,
-                                ObjectID = cosmetic.ObjectID,
-                                Enum = cosmetic.Enum
-                            }
-                        end
-                    end
-                end
-                return emotes
-            end
-        end
-    end)
-
-    -- HOOK WRAPS
-    local originalOwnsCosmeticWrap = CosmeticLibrary.OwnsCosmetic
-    CosmeticLibrary.OwnsCosmetic = function(self, inventory, name, weapon)
-        if name:find("MISSING_") then return originalOwnsCosmeticWrap(self, inventory, name, weapon) end
-        local cosmetic = CosmeticLibrary.Cosmetics[name]
-        if cosmetic and (cosmetic.Type == "Wrap" or cosmetic.Type == "Wrapping" or name:lower():find("wrap")) then return true end
-        return originalOwnsCosmeticWrap(self, inventory, name, weapon)
-    end
-
-    local originalGetWrapVer = DataController.Get
-    DataController.Get = function(self, key)
-        local data = originalGetWrapVer(self, key)
-        if key == "CosmeticInventory" then
-            local proxy = {}
-            if data then for k, v in pairs(data) do 
-                local cosmetic = CosmeticLibrary.Cosmetics[k]
-                if cosmetic and (cosmetic.Type == "Wrap" or cosmetic.Type == "Wrapping" or k:lower():find("wrap")) then proxy[k] = v end
-            end end
-            return setmetatable(proxy, {__index = function(t, k)
-                local cosmetic = CosmeticLibrary.Cosmetics[k]
-                if cosmetic and (cosmetic.Type == "Wrap" or cosmetic.Type == "Wrapping" or k:lower():find("wrap")) then return true end
-                return nil
-            end})
-        end
-        if key == "FavoritedCosmetics" then
-            local result = data and table.clone(data) or {}
-            for weapon, favs in pairs(favorites) do
-                result[weapon] = result[weapon] or {}
-                for name, isFav in pairs(favs) do 
-                    local cosmetic = CosmeticLibrary.Cosmetics[name]
-                    if cosmetic and (cosmetic.Type == "Wrap" or cosmetic.Type == "Wrapping" or name:lower():find("wrap")) then result[weapon][name] = isFav end
-                end
-            end
-            return result
-        end
-        return data
-    end
-
-    if hookmetamethod then
-        local remotes = ReplicatedStorage:FindFirstChild("Remotes")
-        local dataRemotes = remotes and remotes:FindFirstChild("Data")
-        local equipRemote = dataRemotes and dataRemotes:FindFirstChild("EquipCosmetic")
-        local favoriteRemote = dataRemotes and dataRemotes:FindFirstChild("FavoriteCosmetic")
-        
-        if equipRemote then
-            local oldNamecall
-            oldNamecall = hookmetamethod(game, "__namecall", function(self, ...)
-                if getnamecallmethod() ~= "FireServer" then return oldNamecall(self, ...) end
-                local args = {...}
-                if self == equipRemote then
-                    local weaponName, cosmeticType, cosmeticName, options = args[1], args[2], args[3], args[4] or {}
-                    if cosmeticType ~= "Wrap" and cosmeticType ~= "Wrapping" then return oldNamecall(self, ...) end
-                    if cosmeticName and cosmeticName ~= "None" and cosmeticName ~= "" then
-                        local inventory = DataController:Get("CosmeticInventory")
-                        if inventory and rawget(inventory, cosmeticName) then return oldNamecall(self, ...) end
-                    end
-                    equipped[weaponName] = equipped[weaponName] or {}
-                    if not cosmeticName or cosmeticName == "None" or cosmeticName == "" then
-                        equipped[weaponName][cosmeticType] = nil
-                        if not next(equipped[weaponName]) then equipped[weaponName] = nil end
-                    else
-                        local cloned = cloneCosmetic(cosmeticName, cosmeticType, {inverted = options.IsInverted, favoritesOnly = options.OnlyUseFavorites})
-                        if cloned then equipped[weaponName][cosmeticType] = cloned end
-                    end
-                    task.defer(function()
-                        pcall(function() DataController.CurrentData:Replicate("WeaponInventory") end)
-                        task.wait(0.2)
-                        saveConfig()
-                    end)
-                    return
-                end
-                if self == favoriteRemote then
-                    local cosmetic = CosmeticLibrary.Cosmetics[args[2]]
-                    if cosmetic and (cosmetic.Type == "Wrap" or cosmetic.Type == "Wrapping" or args[2]:lower():find("wrap")) then
-                        favorites[args[1]] = favorites[args[1]] or {}
-                        favorites[args[1]][args[2]] = args[3] or nil
-                        saveConfig()
-                        task.spawn(function() pcall(function() DataController.CurrentData:Replicate("FavoritedCosmetics") end) end)
-                    end
-                    return
-                end
-                return oldNamecall(self, ...)
-            end)
-        end
-    end
-
-    if ClientItem and ClientItem._CreateViewModel then
-        local originalCreateViewModelWrap = ClientItem._CreateViewModel
-        ClientItem._CreateViewModel = function(self, viewmodelRef)
-            local weaponName = self.Name
-            local weaponPlayer = self.ClientFighter and self.ClientFighter.Player
-            constructingWeapon = (weaponPlayer == player) and weaponName or nil
-            if weaponPlayer == player and equipped[weaponName] and equipped[weaponName].Wrap and viewmodelRef then
-                local dataKey, wrapKey, nameKey = self:ToEnum("Data"), self:ToEnum("Wrap"), self:ToEnum("Name")
-                if viewmodelRef[dataKey] then
-                    viewmodelRef[dataKey][wrapKey] = equipped[weaponName].Wrap
-                    viewmodelRef[dataKey][nameKey] = equipped[weaponName].Wrap.Name
-                elseif viewmodelRef.Data then
-                    viewmodelRef.Data.Wrap = equipped[weaponName].Wrap
-                    viewmodelRef.Data.Name = equipped[weaponName].Wrap.Name
-                end
-            end
-            local result = originalCreateViewModelWrap(self, viewmodelRef)
-            constructingWeapon = nil
-            return result
-        end
-    end
-
-    if viewModelModule then
-        local ClientViewModel = require(viewModelModule)
-        if ClientViewModel.GetWrap then
-            local originalGetWrapFunc = ClientViewModel.GetWrap
-            ClientViewModel.GetWrap = function(self)
-                local weaponName = self.ClientItem and self.ClientItem.Name
-                local weaponPlayer = self.ClientItem and self.ClientItem.ClientFighter and self.ClientItem.ClientFighter.Player
-                if weaponName and weaponPlayer == player and equipped[weaponName] and equipped[weaponName].Wrap then
-                    return equipped[weaponName].Wrap
-                end
-                return originalGetWrapFunc(self)
-            end
-        end
-        local originalNewWrap = ClientViewModel.new
-        ClientViewModel.new = function(replicatedData, clientItem)
-            local weaponPlayer = clientItem.ClientFighter and clientItem.ClientFighter.Player
-            local weaponName = constructingWeapon or clientItem.Name
-            if weaponPlayer == player and equipped[weaponName] then
-                local ReplicatedClass = require(ReplicatedStorage.Modules.ReplicatedClass)
-                local dataKey = ReplicatedClass:ToEnum("Data")
-                replicatedData[dataKey] = replicatedData[dataKey] or {}
-                local cosmetics = equipped[weaponName]
-                if cosmetics.Wrap then replicatedData[dataKey][ReplicatedClass:ToEnum("Wrap")] = cosmetics.Wrap end
-            end
-            local result = originalNewWrap(replicatedData, clientItem)
-            if weaponPlayer == player and equipped[weaponName] and equipped[weaponName].Wrap and result._UpdateWrap then
-                result:_UpdateWrap()
-                task.delay(0.1, function() if not result._destroyed then result:_UpdateWrap() end end)
-            end
-            return result
-        end
-    end
-
-    pcall(function()
-        local ViewProfile = require(player.PlayerScripts.Modules.Pages.ViewProfile)
-        if ViewProfile and ViewProfile.Fetch then
-            local originalFetch = ViewProfile.Fetch
-            ViewProfile.Fetch = function(self, targetPlayer)
-                viewingProfile = targetPlayer
-                return originalFetch(self, targetPlayer)
-            end
-        end
-    end)
-
-    loadConfig()
-    print("✅ 全皮膚解鎖已載入")
+    return best
 end
+
+function SilentAim:Enable()
+    if self.Enabled then return end
+    self.Enabled = true
+    if not self.Hooked then
+        local oldNamecall
+        oldNamecall = hookmetamethod(game, "__namecall", function(self, ...)
+            local method = getnamecallmethod()
+            local args = {...}
+            if SilentAim.Enabled and SilentAim.CurrentTarget and self == Workspace and (method == "Raycast" or method == "raycast") then
+                local origin = args[1]
+                local direction = args[2]
+                if typeof(origin) == "Vector3" and typeof(direction) == "Vector3" and direction.Magnitude > 50 then
+                    args[2] = (SilentAim.CurrentTarget.Position - origin).Unit * direction.Magnitude
+                    return oldNamecall(self, unpack(args))
+                end
+            end
+            return oldNamecall(self, ...)
+        end)
+        self.Hooked = true
+    end
+    RunService.RenderStepped:Connect(function()
+        if SilentAim.Enabled then
+            SilentAim.CurrentTarget = getClosestEnemy()
+        else
+            SilentAim.CurrentTarget = nil
+        end
+    end)
+end
+
+function SilentAim:Disable()
+    self.Enabled = false
+    self.CurrentTarget = nil
+end
+
+-- ===== 星空 =====
+local OfficialSky = {Enabled=false,SkyInstance=nil,OfficialIds={Ft="2570432998",Bk="2570432999",Lf="2570433000",Rt="2570432997",Up="2570432996",Dn="2570433005"},Enable=function(self)if self.Enabled then return end self.Enabled=true self:clearSky()local sky=Instance.new("Sky",Lighting)sky.SkyboxFt="rbxassetid://"..self.OfficialIds.Ft sky.SkyboxBk="rbxassetid://"..self.OfficialIds.Bk sky.SkyboxLf="rbxassetid://"..self.OfficialIds.Lf sky.SkyboxRt="rbxassetid://"..self.OfficialIds.Rt sky.SkyboxUp="rbxassetid://"..self.OfficialIds.Up sky.SkyboxDn="rbxassetid://"..self.OfficialIds.Dn self.SkyInstance=sky end,Disable=function(self)self.Enabled=false self:clearSky()end,clearSky=function(self)for _,obj in ipairs(Lighting:GetChildren())do if obj:IsA("Sky")then obj:Destroy()end end self.SkyInstance=nil end}
+
+-- ===== 穿牆 Desync (原版) =====
+local WallbangModule = {} WallbangModule.__index = WallbangModule
+function WallbangModule.new() local self = setmetatable({}, WallbangModule) self.Active=false self.Target=nil self.Desyncing=false self.HeartbeatConn=nil self.DesyncConn=nil self.RestoreTask=nil self.OldStartShooting=nil return self end
+function WallbangModule:Start() if self.Active then return end self.Active=true local GunModule=LocalPlayer.PlayerScripts:FindFirstChild("Modules") and LocalPlayer.PlayerScripts.Modules:FindFirstChild("ItemTypes") and LocalPlayer.PlayerScripts.Modules.ItemTypes:FindFirstChild("Gun") if not GunModule then warn("找不到 Gun 模組") self.Active=false return end local Gun=require(GunModule) local Utility=require(ReplicatedStorage:FindFirstChild("Modules") and ReplicatedStorage.Modules:FindFirstChild("Utility")) self.HeartbeatConn=RunService.Heartbeat:Connect(function() if not self.Active then return end local mousePos=UserInputService:GetMouseLocation() local bestTarget=nil local bestDist=math.huge for _,plr in ipairs(Players:GetPlayers()) do if plr==LocalPlayer then continue end if plr:GetAttribute("TeamID")==LocalPlayer:GetAttribute("TeamID") then continue end local char=plr.Character if not char then continue end local root=char:FindFirstChild("HumanoidRootPart") local head=char:FindFirstChild("Head") local humanoid=char:FindFirstChildWhichIsA("Humanoid") if not (root and head and humanoid and humanoid.Health>0) then continue end local screenPos,onScreen=Camera:WorldToViewportPoint(root.Position) if not onScreen then continue end local dist=(Vector2.new(screenPos.X,screenPos.Y)-mousePos).Magnitude if dist<bestDist then bestDist=dist bestTarget=plr end end self.Target=bestTarget end) self.OldStartShooting=Gun.StartShooting Gun.StartShooting=function(gun,...) local results={self.OldStartShooting(gun,...)} if not self.Active then return unpack(results) end if not gun.ClientFighter or not gun.ClientFighter.IsLocalPlayer then return unpack(results) end local data=results[3] if not data or typeof(data)~="table" then return unpack(results) end results[4]=true local target=self.Target if not target or not target.Character then return unpack(results) end if not self.Desyncing or self.CurrentDesyncTarget~=target then self:StartDesync(target) task.wait(0.1) end local head=target.Character:FindFirstChild("Head") if not head then return unpack(results) end local headPos=head.Position local headCFrame=head.CFrame local fakeOrigin=headPos-Vector3.new(0,5,0) local lookDir=CFrame.lookAt(fakeOrigin,headPos) local randomOffset=headCFrame:ToObjectSpace(CFrame.new(headPos+Vector3.new(math.random(),math.random(),math.random()))) data[utf8.char(0)]=Utility:EncodeCFrame(CFrame.new(fakeOrigin,headPos)*CFrame.Angles(lookDir:ToOrientation())) data[utf8.char(1)]=Utility:EncodeCFrame(CFrame.new(headPos)*CFrame.Angles(lookDir:ToOrientation())) data[utf8.char(2)]=head data[utf8.char(3)]=Utility:EncodeCFrame(randomOffset) if self.RestoreTask then task.cancel(self.RestoreTask) end self.RestoreTask=task.delay(0.15,function() self:StopDesync() end) return unpack(results) end end
+function WallbangModule:StartDesync(targetPlayer) self:StopDesync() self.Desyncing=true self.CurrentDesyncTarget=targetPlayer local myChar=LocalPlayer.Character if not myChar then return end local myRoot=myChar:FindFirstChild("HumanoidRootPart") if not myRoot then return end self.DesyncConn=RunService.Heartbeat:Connect(function() if not self.Desyncing then return end local targetRoot=targetPlayer.Character and targetPlayer.Character:FindFirstChild("HumanoidRootPart") if not targetRoot then self:StopDesync() return end local oldCFrame=myRoot.CFrame local oldVel=myRoot.Velocity local oldRotVel=myRoot.RotVelocity myRoot.CFrame=targetRoot.CFrame*CFrame.new(0,-5,0) RunService:BindToRenderStep("WallbangRestore",101,function() pcall(function() myRoot.CFrame=oldCFrame myRoot.Velocity=oldVel myRoot.RotVelocity=oldRotVel end) RunService:UnbindFromRenderStep("WallbangRestore") end) end) end
+function WallbangModule:StopDesync() self.Desyncing=false self.CurrentDesyncTarget=nil if self.DesyncConn then self.DesyncConn:Disconnect() self.DesyncConn=nil end if self.RestoreTask then task.cancel(self.RestoreTask) self.RestoreTask=nil end end
+function WallbangModule:Stop() self.Active=false self:StopDesync() if self.HeartbeatConn then self.HeartbeatConn:Disconnect() self.HeartbeatConn=nil end if self.OldStartShooting then local GunModule=LocalPlayer.PlayerScripts:FindFirstChild("Modules") and LocalPlayer.PlayerScripts.Modules:FindFirstChild("ItemTypes") and LocalPlayer.PlayerScripts.Modules.ItemTypes:FindFirstChild("Gun") if GunModule then local Gun=require(GunModule) Gun.StartShooting=self.OldStartShooting end self.OldStartShooting=nil end end
+
+-- ===== 穿牆 V2 (子彈生成點篡改) =====
+local WallbangV2 = {} WallbangV2.__index = WallbangV2
+function WallbangV2.new() local self = setmetatable({}, WallbangV2) self.__active=true self.__target=nil self.__desync=false self.__conn1=nil self.__conn2=nil self.__task1=nil self.__oldfunc=nil return self end
+function WallbangV2:Start() if self.__conn1 then return end local GunModule=LocalPlayer.PlayerScripts:FindFirstChild("Modules") and LocalPlayer.PlayerScripts.Modules:FindFirstChild("ItemTypes") and LocalPlayer.PlayerScripts.Modules.ItemTypes:FindFirstChild("Gun") if not GunModule then warn("找不到 Gun 模組") return end local Gun=require(GunModule) local Utility=require(ReplicatedStorage:FindFirstChild("Modules"):FindFirstChild("Utility")) self.__conn1=RunService.Heartbeat:Connect(function() if not self.__active then return end local mousePos=UserInputService:GetMouseLocation() local best,bestDist=nil,math.huge for _,plr in ipairs(Players:GetPlayers()) do if plr==LocalPlayer then continue end if plr:GetAttribute("TeamID")==LocalPlayer:GetAttribute("TeamID") then continue end local char=plr.Character if not char then continue end local root=char:FindFirstChild("HumanoidRootPart") local head=char:FindFirstChild("Head") local hum=char:FindFirstChildWhichIsA("Humanoid") if not(root and head and hum and hum.Health>0)then continue end local sp,onScreen=Camera:WorldToViewportPoint(root.Position) if not onScreen then continue end local dist=(Vector2.new(sp.X,sp.Y)-mousePos).Magnitude if dist<bestDist then bestDist=dist best=plr end end self.__target=best end) self.__oldfunc=Gun.StartShooting Gun.StartShooting=function(gun,...) local results={self.__oldfunc(gun,...)} if not self.__active then return unpack(results) end if not(gun.ClientFighter and gun.ClientFighter.IsLocalPlayer)then return unpack(results) end local data=results[3] if not data or typeof(data)~="table"then return unpack(results) end results[4]=true local target=self.__target if not target or not target.Character then return unpack(results) end if not self.__desync or self.__curr~=target then self:DesyncStart(target) task.wait(0.01) end local head=target.Character:FindFirstChild("Head") if not head then return unpack(results) end local headPos=head.Position local headCF=head.CFrame local fakeOrigin=headPos-Vector3.new(0,5,0) local lookDir=CFrame.lookAt(fakeOrigin,headPos) local randOff=headCF:ToObjectSpace(CFrame.new(headPos+Vector3.new(math.random(),math.random(),math.random()))) data[utf8.char(0)]=Utility:EncodeCFrame(CFrame.new(fakeOrigin,headPos)*CFrame.Angles(lookDir:ToOrientation())) data[utf8.char(1)]=Utility:EncodeCFrame(CFrame.new(headPos)*CFrame.Angles(lookDir:ToOrientation())) data[utf8.char(2)]=head data[utf8.char(3)]=Utility:EncodeCFrame(randOff) if self.__task1 then task.cancel(self.__task1) end self.__task1=task.delay(0.15,function()self:DesyncStop()end) return unpack(results) end end
+function WallbangV2:DesyncStart(targetPlayer) self:DesyncStop() self.__desync=true self.__curr=targetPlayer local myRoot=LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") if not myRoot then return end self.__conn2=RunService.Heartbeat:Connect(function() if not self.__desync then return end local targetRoot=targetPlayer.Character and targetPlayer.Character:FindFirstChild("HumanoidRootPart") if not targetRoot then self:DesyncStop()return end local oldCF=myRoot.CFrame local oldVel=myRoot.Velocity local oldRot=myRoot.RotVelocity myRoot.CFrame=targetRoot.CFrame*CFrame.new(0,-5,0) RunService:BindToRenderStep("WallV2Restore",101,function() pcall(function()myRoot.CFrame=oldCF myRoot.Velocity=oldVel myRoot.RotVelocity=oldRot end) RunService:UnbindFromRenderStep("WallV2Restore") end) end) end
+function WallbangV2:DesyncStop() self.__desync=false self.__curr=nil if self.__conn2 then self.__conn2:Disconnect()self.__conn2=nil end end
+function WallbangV2:Stop() self.__active=false self:DesyncStop() if self.__conn1 then self.__conn1:Disconnect()self.__conn1=nil end if self.__oldfunc then local GunModule=LocalPlayer.PlayerScripts:FindFirstChild("Modules")and LocalPlayer.PlayerScripts.Modules:FindFirstChild("ItemTypes")and LocalPlayer.PlayerScripts.Modules.ItemTypes:FindFirstChild("Gun") if GunModule then local Gun=require(GunModule) Gun.StartShooting=self.__oldfunc end self.__oldfunc=nil end end
+
+-- ===== 全皮解鎖 =====
+local function ExecuteUnlockAll()
+local a=game:GetService("Players")local b=game:GetService("ReplicatedStorage")local c=game:GetService("HttpService")local d=a.LocalPlayer local e=d.PlayerScripts local f=e.Controllers local g=require(b.Modules:WaitForChild("EnumLibrary",10))if g then g:WaitForEnumBuilder()end local h=require(b.Modules:WaitForChild("CosmeticLibrary",10))local i=require(b.Modules:WaitForChild("ItemLibrary",10))local j=require(f:WaitForChild("PlayerDataController",10))local k,l={},{}local m,n=nil,nil local o=nil local function p(q,r,s)local t=h.Cosmetics[q]if not t then return nil end local u={}for v,w in pairs(t)do u[v]=w end u.Name=q u.Type=u.Type or r u.Seed=u.Seed or math.random(1,1000000)if g then local x,y=pcall(g.ToEnum,g,q)if x and y then u.Enum,u.ObjectID=y,u.ObjectID or y end end if s then if s.inverted~=nil then u.Inverted=s.inverted end if s.favoritesOnly~=nil then u.OnlyUseFavorites=s.favoritesOnly end end return u end local z="unlockall/config.json"local function A()if not writefile then return end pcall(function()local B={equipped={},favorites=l}for C,D in pairs(k)do B.equipped[C]={}for E,F in pairs(D)do if F and F.Name then B.equipped[C][E]={name=F.Name,seed=F.Seed,inverted=F.Inverted}end end end makefolder("unlockall")writefile(z,c:JSONEncode(B))end)end local function G()if not readfile or not isfile or not isfile(z)then return end pcall(function()local B=c:JSONDecode(readfile(z))if B.equipped then for C,D in pairs(B.equipped)do k[C]={}for E,F in pairs(D)do local H=p(F.name,E,{inverted=F.inverted})if H then H.Seed=F.seed k[C][E]=H end end end end l=B.favorites or{}end)end h.OwnsCosmeticNormally=function(I,J,q,C)local K=h.Cosmetics[q]if K and K.Type=="Skin"then return true end return false end h.OwnsCosmeticUniversally=function(I,J,q,C)local K=h.Cosmetics[q]if K and K.Type=="Skin"then return true end return false end h.OwnsCosmeticForWeapon=function(I,J,q,C)local K=h.Cosmetics[q]if K and K.Type=="Skin"then return true end return false end local L=h.OwnsCosmetic h.OwnsCosmetic=function(I,J,q,C)if q:find("MISSING_")then return L(I,J,q,C)end local K=h.Cosmetics[q]if K and K.Type=="Skin"then return true end return L(I,J,q,C)end local M=j.Get j.Get=function(I,N)local O=M(I,N)if N=="CosmeticInventory"then local P={}if O then for Q,R in pairs(O)do local K=h.Cosmetics[Q]if K and K.Type=="Skin"then P[Q]=R end end end return setmetatable(P,{__index=function(S,Q)local K=h.Cosmetics[Q]if K and K.Type=="Skin"then return true end return nil end})end if N=="FavoritedCosmetics"then local T=O and table.clone(O)or{}for C,U in pairs(l)do T[C]=T[C]or{}for q,V in pairs(U)do local K=h.Cosmetics[q]if K and K.Type=="Skin"then T[C][q]=V end end end return T end return O end local W=j.GetWeaponData j.GetWeaponData=function(I,C)local X=W(I,C)if not X then return nil end local Y={}for v,w in pairs(X)do Y[v]=w end Y.Name=C if k[C]then for E,F in pairs(k[C])do if E=="Skin"then Y[E]=F end end end return Y end local Z pcall(function()Z=require(f:WaitForChild("FighterController",10))end)if hookmetamethod then local _=b:FindFirstChild("Remotes")local a0=_ and _:FindFirstChild("Data")local a1=a0 and a0:FindFirstChild("EquipCosmetic")local a2=a0 and a0:FindFirstChild("FavoriteCosmetic")local a3=_ and _:FindFirstChild("Replication")local a4=a3 and a3:FindFirstChild("Fighter")local a5=a4 and a4:FindFirstChild("UseItem")if a1 then local a6 a6=hookmetamethod(game,"__namecall",function(I,...)if getnamecallmethod()~="FireServer"then return a6(I,...)end local a7={...}if a5 and I==a5 then local a8=a7[1]if Z then pcall(function()local a9=Z:GetFighter(d)if a9 and a9.Items then for _,ba in pairs(a9.Items)do if ba:Get("ObjectID")==a8 then o=ba.Name break end end end end)end end if I==a1 then local C,E,q,bb=a7[1],a7[2],a7[3],a7[4]or{}if E~="Skin"then return a6(I,...)end if q and q~="None"and q~=""then local bc=j:Get("CosmeticInventory")if bc and rawget(bc,q)then return a6(I,...)end end k[C]=k[C]or{}if not q or q=="None"or q==""then k[C][E]=nil if not next(k[C])then k[C]=nil end else local bd=p(q,E,{inverted=bb.IsInverted,favoritesOnly=bb.OnlyUseFavorites})if bd then k[C][E]=bd end end task.defer(function()pcall(function()j.CurrentData:Replicate("WeaponInventory")end)task.wait(0.2)A()end)return end if I==a2 then local K=h.Cosmetics[a7[2]]if K and K.Type=="Skin"then l[a7[1]]=l[a7[1]]or{}l[a7[1]][a7[2]]=a7[3]or nil A()task.spawn(function()pcall(function()j.CurrentData:Replicate("FavoritedCosmetics")end)end)end return end return a6(I,...)end)end end local be pcall(function()be=require(d.PlayerScripts.Modules.ClientReplicatedClasses.ClientFighter.ClientItem)end)if be and be._CreateViewModel then local bf=be._CreateViewModel be._CreateViewModel=function(I,bg)local C=I.Name local bh=I.ClientFighter and I.ClientFighter.Player m=(bh==d)and C or nil if bh==d and k[C]and k[C].Skin and bg then local bi,bj,bk=I:ToEnum("Data"),I:ToEnum("Skin"),I:ToEnum("Name")if bg[bi]then bg[bi][bj]=k[C].Skin bg[bi][bk]=k[C].Skin.Name elseif bg.Data then bg.Data.Skin=k[C].Skin bg.Data.Name=k[C].Skin.Name end end local bl=bf(I,bg)m=nil return bl end end local bm=d.PlayerScripts.Modules.ClientReplicatedClasses.ClientFighter.ClientItem:FindFirstChild("ClientViewModel")if bm then local bn=require(bm)local bo=bn.new bn.new=function(bp,bq)local br=bq.ClientFighter and bq.ClientFighter.Player local C=m or bq.Name if br==d and k[C]then local bs=require(b.Modules.ReplicatedClass)local bt=bs:ToEnum("Data")bp[bt]=bp[bt]or{}local bu=k[C]if bu.Skin then bp[bt][bs:ToEnum("Skin")]=bu.Skin end end local bv=bo(bp,bq)return bv end end local bw=i.GetViewModelImageFromWeaponData i.GetViewModelImageFromWeaponData=function(I,bx,by)if not bx then return bw(I,bx,by)end local C=bx.Name local bz=(bx.Skin and k[C]and bx.Skin==k[C].Skin)or(n==d and k[C]and k[C].Skin)if bz and k[C]and k[C].Skin then local bA=I.ViewModels[k[C].Skin.Name]if bA then return bA[by and"ImageHighResolution"or"Image"]or bA.Image end end return bw(I,bx,by)end local bB=h.OwnsCosmetic h.OwnsCosmetic=function(I,J,q,C)if q:find("MISSING_")then return bB(I,J,q,C)end local K=h.Cosmetics[q]if K and(K.Type=="Charm"or q:lower():find("charm"))then return true end return bB(I,J,q,C)end local bC=j.Get j.Get=function(I,N)local O=bC(I,N)if N=="CosmeticInventory"then local P={}if O then for Q,R in pairs(O)do local K=h.Cosmetics[Q]if K and(K.Type=="Charm"or Q:lower():find("charm"))then P[Q]=R end end end return setmetatable(P,{__index=function(S,Q)local K=h.Cosmetics[Q]if K and(K.Type=="Charm"or Q:lower():find("charm"))then return true end return nil end})end if N=="FavoritedCosmetics"then local T=O and table.clone(O)or{}for C,U in pairs(l)do T[C]=T[C]or{}for q,V in pairs(U)do local K=h.Cosmetics[q]if K and(K.Type=="Charm"or q:lower():find("charm"))then T[C][q]=V end end end return T end return O end if hookmetamethod then local _=b:FindFirstChild("Remotes")local a0=_ and _:FindFirstChild("Data")local a1=a0 and a0:FindFirstChild("EquipCosmetic")local a2=a0 and a0:FindFirstChild("FavoriteCosmetic")if a1 then local a6 a6=hookmetamethod(game,"__namecall",function(I,...)if getnamecallmethod()~="FireServer"then return a6(I,...)end local a7={...}if I==a1 then local C,E,q,bb=a7[1],a7[2],a7[3],a7[4]or{}if E~="Charm"then return a6(I,...)end if q and q~="None"and q~=""then local bc=j:Get("CosmeticInventory")if bc and rawget(bc,q)then return a6(I,...)end end k[C]=k[C]or{}if not q or q=="None"or q==""then k[C][E]=nil if not next(k[C])then k[C]=nil end else local bd=p(q,E,{inverted=bb.IsInverted,favoritesOnly=bb.OnlyUseFavorites})if bd then k[C][E]=bd end end task.defer(function()pcall(function()j.CurrentData:Replicate("WeaponInventory")end)task.wait(0.2)A()end)return end if I==a2 then local K=h.Cosmetics[a7[2]]if K and(K.Type=="Charm"or a7[2]:lower():find("charm"))then l[a7[1]]=l[a7[1]]or{}l[a7[1]][a7[2]]=a7[3]or nil A()task.spawn(function()pcall(function()j.CurrentData:Replicate("FavoritedCosmetics")end)end)end return end return a6(I,...)end)end end if be and be._CreateViewModel then local bD=be._CreateViewModel be._CreateViewModel=function(I,bg)local C=I.Name local bh=I.ClientFighter and I.ClientFighter.Player m=(bh==d)and C or nil if bh==d and k[C]and k[C].Charm and bg then local bi,bj,bk=I:ToEnum("Data"),I:ToEnum("Charm"),I:ToEnum("Name")if bg[bi]then bg[bi][bj]=k[C].Charm bg[bi][bk]=k[C].Charm.Name elseif bg.Data then bg.Data.Charm=k[C].Charm bg.Data.Name=k[C].Charm.Name end end local bl=bD(I,bg)m=nil return bl end end if bm then local bn=require(bm)if bn.GetCharm then local bE=bn.GetCharm bn.GetCharm=function(I)local C=I.ClientItem and I.ClientItem.Name local bh=I.ClientItem and I.ClientItem.ClientFighter and I.ClientItem.ClientFighter.Player if C and bh==d and k[C]and k[C].Charm then return k[C].Charm end return bE(I)end end local bF=bn.new bn.new=function(bp,bq)local bh=bq.ClientFighter and bq.ClientFighter.Player local C=m or bq.Name if bh==d and k[C]then local bs=require(b.Modules.ReplicatedClass)local bt=bs:ToEnum("Data")bp[bt]=bp[bt]or{}local bu=k[C]if bu.Charm then bp[bt][bs:ToEnum("Charm")]=bu.Charm end end local bv=bF(bp,bq)return bv end end local bG=h.OwnsCosmetic h.OwnsCosmetic=function(I,J,q,C)if q:find("MISSING_")then return bG(I,J,q,C)end local K=h.Cosmetics[q]if K and(K.Type=="Dance"or K.Type=="Emote"or q:lower():find("dance")or q:lower():find("emote"))then return true end return bG(I,J,q,C)end local bH=j.Get j.Get=function(I,N)local O=bH(I,N)if N=="CosmeticInventory"then local P={}if O then for Q,R in pairs(O)do local K=h.Cosmetics[Q]if K and(K.Type=="Dance"or K.Type=="Emote"or Q:lower():find("dance")or Q:lower():find("emote"))then P[Q]=R end end end return setmetatable(P,{__index=function(S,Q)local K=h.Cosmetics[Q]if K and(K.Type=="Dance"or K.Type=="Emote"or Q:lower():find("dance")or Q:lower():find("emote"))then return true end return nil end})end if N=="FavoritedCosmetics"then local T=O and table.clone(O)or{}for C,U in pairs(l)do T[C]=T[C]or{}for q,V in pairs(U)do local K=h.Cosmetics[q]if K and(K.Type=="Dance"or K.Type=="Emote"or q:lower():find("dance")or q:lower():find("emote"))then T[C][q]=V end end end return T end return O end if hookmetamethod then local _=b:FindFirstChild("Remotes")local a0=_ and _:FindFirstChild("Data")local a1=a0 and a0:FindFirstChild("EquipCosmetic")local a2=a0 and a0:FindFirstChild("FavoriteCosmetic")if a1 then local a6 a6=hookmetamethod(game,"__namecall",function(I,...)if getnamecallmethod()~="FireServer"then return a6(I,...)end local a7={...}if I==a1 then local C,E,q,bb=a7[1],a7[2],a7[3],a7[4]or{}if E=="Dance"or E=="Emote"or(q and(q:lower():find("dance")or q:lower():find("emote")))then k.Dances=k.Dances or{}if not q or q=="None"or q==""then k.Dances[E]=nil else local bd=p(q,E,{inverted=bb.IsInverted,favoritesOnly=bb.OnlyUseFavorites})if bd then k.Dances[E]=bd end end task.defer(function()pcall(function()j.CurrentData:Replicate("CosmeticInventory")end)task.wait(0.2)A()end)return end return a6(I,...)end if I==a2 then local K=h.Cosmetics[a7[2]]if K and(K.Type=="Dance"or K.Type=="Emote"or a7[2]:lower():find("dance")or a7[2]:lower():find("emote"))then l[a7[1]]=l[a7[1]]or{}l[a7[1]][a7[2]]=a7[3]or nil A()task.spawn(function()pcall(function()j.CurrentData:Replicate("FavoritedCosmetics")end)end)end return end return a6(I,...)end)end end local bI pcall(function()bI=require(f:WaitForChild("EmoteController",10))if bI and bI.GetEmotes then local bJ=bI.GetEmotes bI.GetEmotes=function(I)local bK=bJ(I)for q,K in pairs(h.Cosmetics)do if K and(K.Type=="Dance"or K.Type=="Emote"or q:lower():find("dance")or q:lower():find("emote"))then if not bK[q]then bK[q]={Name=q,Type=K.Type,ObjectID=K.ObjectID,Enum=K.Enum}end end end return bK end end end)local bL=h.OwnsCosmetic h.OwnsCosmetic=function(I,J,q,C)if q:find("MISSING_")then return bL(I,J,q,C)end local K=h.Cosmetics[q]if K and(K.Type=="Wrap"or K.Type=="Wrapping"or q:lower():find("wrap"))then return true end return bL(I,J,q,C)end local bM=j.Get j.Get=function(I,N)local O=bM(I,N)if N=="CosmeticInventory"then local P={}if O then for Q,R in pairs(O)do local K=h.Cosmetics[Q]if K and(K.Type=="Wrap"or K.Type=="Wrapping"or Q:lower():find("wrap"))then P[Q]=R end end end return setmetatable(P,{__index=function(S,Q)local K=h.Cosmetics[Q]if K and(K.Type=="Wrap"or K.Type=="Wrapping"or Q:lower():find("wrap"))then return true end return nil end})end if N=="FavoritedCosmetics"then local T=O and table.clone(O)or{}for C,U in pairs(l)do T[C]=T[C]or{}for q,V in pairs(U)do local K=h.Cosmetics[q]if K and(K.Type=="Wrap"or K.Type=="Wrapping"or q:lower():find("wrap"))then T[C][q]=V end end end return T end return O end if hookmetamethod then local _=b:FindFirstChild("Remotes")local a0=_ and _:FindFirstChild("Data")local a1=a0 and a0:FindFirstChild("EquipCosmetic")local a2=a0 and a0:FindFirstChild("FavoriteCosmetic")if a1 then local a6 a6=hookmetamethod(game,"__namecall",function(I,...)if getnamecallmethod()~="FireServer"then return a6(I,...)end local a7={...}if I==a1 then local C,E,q,bb=a7[1],a7[2],a7[3],a7[4]or{}if E~="Wrap"and E~="Wrapping"then return a6(I,...)end if q and q~="None"and q~=""then local bc=j:Get("CosmeticInventory")if bc and rawget(bc,q)then return a6(I,...)end end k[C]=k[C]or{}if not q or q=="None"or q==""then k[C][E]=nil if not next(k[C])then k[C]=nil end else local bd=p(q,E,{inverted=bb.IsInverted,favoritesOnly=bb.OnlyUseFavorites})if bd then k[C][E]=bd end end task.defer(function()pcall(function()j.CurrentData:Replicate("WeaponInventory")end)task.wait(0.2)A()end)return end if I==a2 then local K=h.Cosmetics[a7[2]]if K and(K.Type=="Wrap"or K.Type=="Wrapping"or a7[2]:lower():find("wrap"))then l[a7[1]]=l[a7[1]]or{}l[a7[1]][a7[2]]=a7[3]or nil A()task.spawn(function()pcall(function()j.CurrentData:Replicate("FavoritedCosmetics")end)end)end return end return a6(I,...)end)end end if be and be._CreateViewModel then local bN=be._CreateViewModel be._CreateViewModel=function(I,bg)local C=I.Name local bh=I.ClientFighter and I.ClientFighter.Player m=(bh==d)and C or nil if bh==d and k[C]and k[C].Wrap and bg then local bi,bj,bk=I:ToEnum("Data"),I:ToEnum("Wrap"),I:ToEnum("Name")if bg[bi]then bg[bi][bj]=k[C].Wrap bg[bi][bk]=k[C].Wrap.Name elseif bg.Data then bg.Data.Wrap=k[C].Wrap bg.Data.Name=k[C].Wrap.Name end end local bl=bN(I,bg)m=nil return bl end end if bm then local bn=require(bm)if bn.GetWrap then local bO=bn.GetWrap bn.GetWrap=function(I)local C=I.ClientItem and I.ClientItem.Name local bh=I.ClientItem and I.ClientItem.ClientFighter and I.ClientItem.ClientFighter.Player if C and bh==d and k[C]and k[C].Wrap then return k[C].Wrap end return bO(I)end end local bP=bn.new bn.new=function(bp,bq)local bh=bq.ClientFighter and bq.ClientFighter.Player local C=m or bq.Name if bh==d and k[C]then local bs=require(b.Modules.ReplicatedClass)local bt=bs:ToEnum("Data")bp[bt]=bp[bt]or{}local bu=k[C]if bu.Wrap then bp[bt][bs:ToEnum("Wrap")]=bu.Wrap end end local bv=bP(bp,bq)if bh==d and k[C]and k[C].Wrap and bv._UpdateWrap then bv:_UpdateWrap()task.delay(0.1,function()if not bv._destroyed then bv:_UpdateWrap()end end)end return bv end end pcall(function()local bQ=require(d.PlayerScripts.Modules.Pages.ViewProfile)if bQ and bQ.Fetch then local bR=bQ.Fetch bQ.Fetch=function(I,bS)n=bS return bR(I,bS)end end end)G()print("✅ 全皮膚解鎖已載入")end
+
+-- ===== 玩家增強 =====
+local SpeedEnabled = false
+local InfiniteJumpEnabled = false
+local SpeedMultiplier = 0.3
+local JumpMultiplier = 2.0
+local GravitySetting = 1.0
+
+RunService.Stepped:Connect(function()
+    if not SpeedEnabled then return end
+    local char = LocalPlayer.Character
+    if char then
+        local root = char:FindFirstChild("HumanoidRootPart")
+        local hum = char:FindFirstChildWhichIsA("Humanoid")
+        if root and hum then
+            local direction = hum.MoveDirection
+            if direction.Magnitude > 0 then
+                root.CFrame = root.CFrame + direction * SpeedMultiplier
+            end
+        end
+    end
+end)
+
+RunService.Heartbeat:Connect(function()
+    Workspace.Gravity = 196.2 * GravitySetting
+end)
+
+UserInputService.JumpRequest:Connect(function()
+    if InfiniteJumpEnabled then
+        local char = LocalPlayer.Character
+        if char then
+            local hum = char:FindFirstChildWhichIsA("Humanoid")
+            if hum then
+                hum.JumpPower = 50 * JumpMultiplier
+                hum:ChangeState(Enum.HumanoidStateType.Jumping)
+            end
+        end
+    end
+end)
 
 -- ===== Hub GUI =====
-local screenGui = Instance.new("ScreenGui")
+local wallbangDesync = WallbangModule.new()
+local wallbangV2 = WallbangV2.new()
+local screenGui = Instance.new("ScreenGui", CoreGui)
 screenGui.Name = HttpService:GenerateGUID(false)
 screenGui.ResetOnSpawn = false
-screenGui.Parent = CoreGui
+local Panel = Instance.new("Frame", screenGui) Panel.Size = UDim2.new(0,550,0,330) Panel.Position = UDim2.new(0.5,-275,0.5,-165) Panel.BackgroundColor3 = Color3.fromRGB(18,18,22) Panel.BackgroundTransparency = 0.1 Panel.BorderSizePixel = 0 Panel.ClipsDescendants = true Panel.Active = true
+Instance.new("UICorner", Panel).CornerRadius = UDim.new(0,14)
+local RainbowStroke = Instance.new("UIStroke", Panel) RainbowStroke.Thickness = 2 RainbowStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+local hueStroke = 0 RunService.RenderStepped:Connect(function() hueStroke = hueStroke + 0.005 if hueStroke > 1 then hueStroke = 0 end RainbowStroke.Color = Color3.fromHSV(hueStroke,1,1) end)
+local TitleBar = Instance.new("Frame", Panel) TitleBar.Size = UDim2.new(1,0,0,36) TitleBar.BackgroundColor3 = Color3.fromRGB(12,12,15) TitleBar.BorderSizePixel = 0 TitleBar.Active = true
+Instance.new("UICorner", TitleBar).CornerRadius = UDim.new(0,14)
+local TitleText = Instance.new("TextLabel", TitleBar) TitleText.Size = UDim2.new(1,-50,1,0) TitleText.Position = UDim2.new(0,15,0,0) TitleText.BackgroundTransparency = 1 TitleText.Text = "星輝輔助hub" TitleText.TextColor3 = Color3.fromRGB(255,255,255) TitleText.Font = Enum.Font.GothamBold TitleText.TextSize = 18 TitleText.TextXAlignment = Enum.TextXAlignment.Left
+local CloseBtn = Instance.new("TextButton", TitleBar) CloseBtn.Size = UDim2.new(0,30,0,30) CloseBtn.Position = UDim2.new(1,-35,0,3) CloseBtn.BackgroundColor3 = Color3.fromRGB(255,70,70) CloseBtn.Text = "✕" CloseBtn.TextColor3 = Color3.fromRGB(255,255,255) CloseBtn.Font = Enum.Font.GothamBold CloseBtn.TextSize = 20 CloseBtn.BorderSizePixel = 0
+Instance.new("UICorner", CloseBtn).CornerRadius = UDim.new(0,8)
 
-local isDragging = false
-local dragStart, startPos
-
-local Panel = Instance.new("Frame")
-Panel.Size = UDim2.new(0, 280, 0, 350)
-Panel.Position = UDim2.new(0.5, -140, 0.5, -175)
-Panel.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-Panel.BorderSizePixel = 0
-Panel.Active = true
-Panel.ClipsDescendants = true
-Panel.Parent = screenGui
-Instance.new("UICorner", Panel).CornerRadius = UDim.new(0, 12)
-
-local TitleBar = Instance.new("Frame")
-TitleBar.Size = UDim2.new(1, 0, 0, 40)
-TitleBar.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
-TitleBar.BorderSizePixel = 0
-TitleBar.Parent = Panel
-Instance.new("UICorner", TitleBar).CornerRadius = UDim.new(0, 12)
-
-local Title = Instance.new("TextLabel")
-Title.Size = UDim2.new(1, -40, 1, 0)
-Title.Position = UDim2.new(0, 10, 0, 0)
-Title.BackgroundTransparency = 1
-Title.Text = "狗狗給hub"
-Title.TextColor3 = Color3.fromRGB(255, 255, 255)
-Title.Font = Enum.Font.GothamBold
-Title.TextSize = 16
-Title.TextXAlignment = Enum.TextXAlignment.Left
-Title.Parent = TitleBar
-
-local MinBtn = Instance.new("TextButton")
-MinBtn.Size = UDim2.new(0, 30, 0, 30)
-MinBtn.Position = UDim2.new(1, -35, 0, 5)
-MinBtn.BackgroundColor3 = Color3.fromRGB(255, 70, 70)
-MinBtn.Text = "✕"
-MinBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-MinBtn.Font = Enum.Font.GothamBold
-MinBtn.TextSize = 18
-MinBtn.BorderSizePixel = 0
-Instance.new("UICorner", MinBtn).CornerRadius = UDim.new(0, 8)
-MinBtn.Parent = TitleBar
-
-local ScrollFrame = Instance.new("ScrollingFrame")
-ScrollFrame.Size = UDim2.new(1, -20, 1, -55)
-ScrollFrame.Position = UDim2.new(0, 10, 0, 45)
-ScrollFrame.BackgroundTransparency = 1
-ScrollFrame.BorderSizePixel = 0
-ScrollFrame.ScrollBarThickness = 3
-ScrollFrame.CanvasSize = UDim2.new(0, 0, 0, 290)
-ScrollFrame.Parent = Panel
-
-local function CreateToggleButton(name, yPos)
-    local container = Instance.new("Frame")
-    container.Size = UDim2.new(1, 0, 0, 45)
-    container.Position = UDim2.new(0, 0, 0, yPos)
-    container.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-    container.BorderSizePixel = 0
-    local corner = Instance.new("UICorner")
-    corner.CornerRadius = UDim.new(0, 20)
-    corner.Parent = container
-
-    local label = Instance.new("TextLabel")
-    label.Size = UDim2.new(1, -60, 1, 0)
-    label.Position = UDim2.new(0, 15, 0, 0)
-    label.BackgroundTransparency = 1
-    label.Text = name
-    label.TextColor3 = Color3.fromRGB(255, 255, 255)
-    label.Font = Enum.Font.Gotham
-    label.TextSize = 14
-    label.TextXAlignment = Enum.TextXAlignment.Left
-    label.Parent = container
-
-    local toggleBtn = Instance.new("TextButton")
-    toggleBtn.Size = UDim2.new(0, 50, 0, 30)
-    toggleBtn.Position = UDim2.new(1, -60, 0, 7)
-    toggleBtn.BackgroundColor3 = Color3.fromRGB(200, 0, 0)
-    toggleBtn.Text = "OFF"
-    toggleBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-    toggleBtn.Font = Enum.Font.GothamBold
-    toggleBtn.TextSize = 14
-    toggleBtn.BorderSizePixel = 0
-    local btnCorner = Instance.new("UICorner")
-    btnCorner.CornerRadius = UDim.new(0, 15)
-    btnCorner.Parent = toggleBtn
-    toggleBtn.Parent = container
-
-    container.Parent = ScrollFrame
-    return toggleBtn
+local LeftTabFrame = Instance.new("Frame", Panel) LeftTabFrame.Size = UDim2.new(0,90,1,-80) LeftTabFrame.Position = UDim2.new(0,15,0,46) LeftTabFrame.BackgroundTransparency = 1
+local TabButtons = {} local TabContents = {} local TabNames = {"主頁","攻擊","視覺","玩家"}
+for i,name in ipairs(TabNames) do
+    local btn = Instance.new("TextButton", LeftTabFrame) btn.Size = UDim2.new(1,0,0,32) btn.Position = UDim2.new(0,0,0,(i-1)*(32+6)) btn.BackgroundColor3 = Color3.fromRGB(50,50,60) btn.Text = name btn.TextColor3 = Color3.new(1,1,1) btn.Font = Enum.Font.GothamBold btn.TextSize = 14
+    Instance.new("UICorner", btn).CornerRadius = UDim.new(0,10)
+    btn.MouseButton1Click:Connect(function()
+        for j,b in ipairs(TabButtons) do TweenService:Create(b, TweenInfo.new(0.25), {BackgroundColor3 = Color3.fromRGB(50,50,60)}):Play() end
+        TweenService:Create(btn, TweenInfo.new(0.25), {BackgroundColor3 = Color3.fromRGB(100,100,120)}):Play()
+        for j,c in ipairs(TabContents) do c.Visible = (j==i) end
+    end)
+    TabButtons[i] = btn
 end
+local ContentArea = Instance.new("Frame", Panel) ContentArea.Size = UDim2.new(1,-120,1,-55) ContentArea.Position = UDim2.new(0,110,0,46) ContentArea.BackgroundColor3 = Color3.fromRGB(28,28,34) ContentArea.BackgroundTransparency = 0.3 ContentArea.BorderSizePixel = 0
+Instance.new("UICorner", ContentArea).CornerRadius = UDim.new(0,10)
+for i = 1, #TabNames do
+    local content = Instance.new("Frame", ContentArea) content.Size = UDim2.new(1,0,1,0) content.BackgroundTransparency = 1 content.Visible = (i==1)
+    TabContents[i] = content
+end
+TweenService:Create(TabButtons[1], TweenInfo.new(0.01), {BackgroundColor3 = Color3.fromRGB(100,100,120)}):Play()
 
-local function CreateSingleButton(name, yPos)
-    local btn = Instance.new("TextButton")
-    btn.Size = UDim2.new(1, 0, 0, 45)
-    btn.Position = UDim2.new(0, 0, 0, yPos)
-    btn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-    btn.Text = name
-    btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+-- 左下角頭像資訊
+local AvatarFrame = Instance.new("Frame", Panel) AvatarFrame.Size = UDim2.new(0,44,0,44) AvatarFrame.Position = UDim2.new(0,25,1,-55) AvatarFrame.BackgroundColor3 = Color3.fromRGB(60,60,70) AvatarFrame.BorderSizePixel = 0
+Instance.new("UICorner", AvatarFrame).CornerRadius = UDim.new(1,0)
+local AvatarLabel = Instance.new("TextLabel", AvatarFrame) AvatarLabel.Size = UDim2.new(1,0,1,0) AvatarLabel.BackgroundTransparency = 1 AvatarLabel.Text = LocalPlayer.Name:sub(1,1) AvatarLabel.TextColor3 = Color3.new(1,1,1) AvatarLabel.Font = Enum.Font.GothamBold AvatarLabel.TextSize = 22
+local NameLabel = Instance.new("TextLabel", Panel) NameLabel.Size = UDim2.new(0,180,0,22) NameLabel.Position = UDim2.new(0,75,1,-55) NameLabel.BackgroundTransparency = 1 NameLabel.Text = LocalPlayer.Name NameLabel.TextColor3 = Color3.new(1,1,1) NameLabel.Font = Enum.Font.GothamBold NameLabel.TextSize = 15 NameLabel.TextXAlignment = Enum.TextXAlignment.Left
+local IdLabel = Instance.new("TextLabel", Panel) IdLabel.Size = UDim2.new(0,180,0,18) IdLabel.Position = UDim2.new(0,75,1,-30) IdLabel.BackgroundTransparency = 1 IdLabel.Text = "ID: "..LocalPlayer.UserId IdLabel.TextColor3 = Color3.new(0.7,0.7,0.7) IdLabel.Font = Enum.Font.Gotham IdLabel.TextSize = 12 IdLabel.TextXAlignment = Enum.TextXAlignment.Left
+
+-- 圓球模式
+local BallSize = 65
+local Circle = Instance.new("ImageButton", screenGui) Circle.Size = UDim2.new(0,BallSize,0,BallSize) Circle.Position = UDim2.new(0.5,-BallSize/2,0.5,-BallSize/2) Circle.BackgroundColor3 = Color3.fromRGB(20,20,25) Circle.BackgroundTransparency = 0.8 Circle.Image = "rbxassetid://0" Circle.Visible = false
+Instance.new("UICorner", Circle).CornerRadius = UDim.new(1,0)
+local CircleStroke = Instance.new("UIStroke", Circle) CircleStroke.Thickness = 3
+local hueCircle = 0 RunService.RenderStepped:Connect(function() hueCircle = hueCircle + 0.01 if hueCircle > 1 then hueCircle = 0 end CircleStroke.Color = Color3.fromHSV(hueCircle,1,1) end)
+local CircleText = Instance.new("TextLabel", Circle) CircleText.Size = UDim2.new(1,0,1,0) CircleText.BackgroundTransparency = 1 CircleText.Text = "星輝" CircleText.TextColor3 = Color3.new(1,1,1) CircleText.Font = Enum.Font.GothamBold CircleText.TextSize = 16
+local function showPanel() Panel.Visible = true Circle.Visible = false end
+local function showCircle() Panel.Visible = false Circle.Visible = true end
+CloseBtn.Activated:Connect(showCircle) Circle.Activated:Connect(showPanel)
+
+-- 拖曳
+local function setupDrag(dragEl, targetEl)
+    local dragging, dragStart, startPos
+    dragEl.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then
+            dragging = true dragStart = input.Position startPos = targetEl.Position
+            input.Changed:Connect(function() if input.UserInputState == Enum.UserInputState.End then dragging = false end end)
+        end
+    end)
+    UserInputService.InputChanged:Connect(function(input)
+        if dragging and (input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseMovement) then
+            local delta = input.Position - dragStart
+            targetEl.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+        end
+    end)
+end
+setupDrag(TitleBar, Panel) setupDrag(Circle, Circle)
+
+-- ===== 攻擊分頁自動佈局 =====
+local attackContent = TabContents[2]
+local AttackScroll = Instance.new("ScrollingFrame", attackContent)
+AttackScroll.Size = UDim2.new(1, 0, 1, 0)
+AttackScroll.BackgroundTransparency = 1
+AttackScroll.BorderSizePixel = 0
+AttackScroll.ScrollBarThickness = 3
+AttackScroll.CanvasSize = UDim2.new(0, 0, 0, 0)
+
+local AttackList = Instance.new("UIListLayout", AttackScroll)
+AttackList.SortOrder = Enum.SortOrder.LayoutOrder
+AttackList.Padding = UDim.new(0, 4)
+
+local function createToggle(parent, name, callback, isSubControl)
+    local btn = Instance.new("TextButton", parent)
+    btn.Size = UDim2.new(1, -6, 0, 30)
+    btn.BackgroundColor3 = Color3.fromRGB(50, 50, 60)
+    btn.Text = name .. " OFF"
+    btn.TextColor3 = Color3.new(1, 1, 1)
     btn.Font = Enum.Font.GothamBold
-    btn.TextSize = 16
-    btn.BorderSizePixel = 0
-    local corner = Instance.new("UICorner")
-    corner.CornerRadius = UDim.new(0, 20)
-    corner.Parent = btn
-    btn.Parent = ScrollFrame
+    btn.TextSize = 13
+    Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 8)
+    local state = false
+    btn.Activated:Connect(function()
+        state = not state
+        btn.Text = name .. (state and " ON" or " OFF")
+        btn.BackgroundColor3 = state and Color3.fromRGB(0, 170, 0) or Color3.fromRGB(50, 50, 60)
+        callback(state)
+    end)
+    if isSubControl then btn.Visible = false end
     return btn
 end
 
-local BW_Btn = CreateToggleButton("黑牆", 0)
-local SN_Btn = CreateToggleButton("速彈無後座", 50)
-local SA_Btn = CreateToggleButton("靜默瞄準", 100)
-
--- 距離輸入框
-local function CreateRangeControl(yPos, callback)
-    local container = Instance.new("Frame")
-    container.Size = UDim2.new(1, 0, 0, 30)
-    container.Position = UDim2.new(0, 0, 0, yPos)
-    container.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-    container.BorderSizePixel = 0
-    Instance.new("UICorner", container).CornerRadius = UDim.new(0, 15)
-
-    local textBox = Instance.new("TextBox")
-    textBox.Size = UDim2.new(1, -20, 1, 0)
-    textBox.Position = UDim2.new(0, 10, 0, 0)
-    textBox.BackgroundTransparency = 1
-    textBox.Text = "∞ (無限)"
-    textBox.TextColor3 = Color3.fromRGB(255, 255, 255)
-    textBox.Font = Enum.Font.Gotham
-    textBox.TextSize = 14
-    textBox.ClearTextOnFocus = false
-    textBox.PlaceholderText = "輸入距離 (0=無限)"
-    textBox.Parent = container
-
-    local currentDist = 0
-
-    local function updateDisplay()
-        if currentDist == 0 then
-            textBox.Text = "∞ (無限)"
-        else
-            textBox.Text = tostring(currentDist) .. " studs"
+local activeSlider = nil
+local function createSlider(parent, name, minV, maxV, defV, callback, isSubControl)
+    local c = Instance.new("Frame", parent)
+    c.Size = UDim2.new(1, -6, 0, 40)
+    c.BackgroundColor3 = Color3.fromRGB(40, 40, 48)
+    Instance.new("UICorner", c).CornerRadius = UDim.new(0, 8)
+    local l = Instance.new("TextLabel", c)
+    l.Size = UDim2.new(1, 0, 0, 18)
+    l.Position = UDim2.new(0, 6, 0, 2)
+    l.BackgroundTransparency = 1
+    l.Text = name .. ": " .. tostring(defV)
+    l.TextColor3 = Color3.new(1, 1, 1)
+    l.Font = Enum.Font.Gotham
+    l.TextSize = 12
+    local bar = Instance.new("Frame", c)
+    bar.Size = UDim2.new(1, -16, 0, 6)
+    bar.Position = UDim2.new(0, 8, 0, 26)
+    bar.BackgroundColor3 = Color3.fromRGB(60, 60, 70)
+    Instance.new("UICorner", bar).CornerRadius = UDim.new(0, 3)
+    local fill = Instance.new("Frame", bar)
+    fill.Size = UDim2.new((defV - minV) / (maxV - minV), 0, 1, 0)
+    fill.BackgroundColor3 = Color3.fromHSV(0.58, 1, 1)
+    Instance.new("UICorner", fill).CornerRadius = UDim.new(0, 3)
+    local function update(pos)
+        local x = math.clamp((pos.X - bar.AbsolutePosition.X) / bar.AbsoluteSize.X, 0, 1)
+        fill.Size = UDim2.new(x, 0, 1, 0)
+        local val = math.floor(minV + (maxV - minV) * x)
+        l.Text = name .. ": " .. tostring(val)
+        callback(val)
+    end
+    bar.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.Touch then
+            activeSlider = update
+            update(input.Position)
         end
-        callback(currentDist)
+    end)
+    if isSubControl then c.Visible = false end
+    return c
+end
+UserInputService.TouchMoved:Connect(function(touch)
+    if activeSlider then activeSlider(touch.Position) end
+end)
+UserInputService.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.Touch then activeSlider = nil end
+end)
+
+local function createFloatingDropdown(parent, panel, name, options, callback, isSubControl)
+    local mainBtn = Instance.new("TextButton", parent)
+    mainBtn.Size = UDim2.new(1, -6, 0, 30)
+    mainBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 60)
+    mainBtn.Text = name .. " 🔽"
+    mainBtn.TextColor3 = Color3.new(1, 1, 1)
+    mainBtn.Font = Enum.Font.GothamBold
+    mainBtn.TextSize = 13
+    Instance.new("UICorner", mainBtn).CornerRadius = UDim.new(0, 8)
+
+    local popup = Instance.new("Frame", panel)
+    popup.Size = UDim2.new(0, 0, 0, 0)
+    popup.BackgroundColor3 = Color3.fromRGB(35, 35, 40)
+    popup.BorderSizePixel = 0
+    popup.ClipsDescendants = true
+    popup.Visible = false
+    popup.ZIndex = 10
+    Instance.new("UICorner", popup).CornerRadius = UDim.new(0, 6)
+
+    local expanded = false
+
+    for i, opt in ipairs(options) do
+        local optBtn = Instance.new("TextButton", popup)
+        optBtn.Size = UDim2.new(1, -8, 0, 28)
+        optBtn.Position = UDim2.new(0, 4, 0, 4 + (i-1)*30)
+        optBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 60)
+        optBtn.Text = (i == 1 and "1. " or "2. ") .. opt
+        optBtn.TextColor3 = Color3.new(1, 1, 1)
+        optBtn.Font = Enum.Font.Gotham
+        optBtn.TextSize = 12
+        optBtn.ZIndex = 11
+        Instance.new("UICorner", optBtn).CornerRadius = UDim.new(0, 4)
+        optBtn.Activated:Connect(function()
+            mainBtn.Text = opt .. " 🔽"
+            callback(opt)
+            popup.Visible = false
+            expanded = false
+        end)
     end
 
-    textBox.Focused:Connect(function()
-        textBox.SelectionStart = 1
-        task.wait()
-        textBox.CursorPosition = #textBox.Text + 1
-    end)
+    local function updatePopupPosition()
+        local absPos = mainBtn.AbsolutePosition
+        local absSize = mainBtn.AbsoluteSize
+        local panelAbs = panel.AbsolutePosition
+        popup.Position = UDim2.new(0, absPos.X - panelAbs.X + 8, 0, absPos.Y - panelAbs.Y + absSize.Y + 2)
+        popup.Size = UDim2.new(0, absSize.X - 16, 0, #options * 30 + 8)
+    end
 
-    textBox.FocusLost:Connect(function(enterPressed)
-        local input = textBox.Text
-        local num = tonumber(input)
-        if num then
-            currentDist = math.max(0, math.floor(num))
+    mainBtn.Activated:Connect(function()
+        expanded = not expanded
+        if expanded then
+            updatePopupPosition()
+            popup.Visible = true
+            mainBtn.Text = name .. " ⬆️"
+        else
+            popup.Visible = false
+            mainBtn.Text = name .. " 🔽"
         end
-        updateDisplay()
     end)
 
-    container.Parent = ScrollFrame
+    if isSubControl then mainBtn.Visible = false end
+    return {MainBtn = mainBtn, Popup = popup}
 end
 
-CreateRangeControl(145, function(dist)
-    SilentAim:SetRange(dist)
+local function createDivider(parent)
+    local line = Instance.new("Frame", parent)
+    line.Size = UDim2.new(1, -6, 0, 1)
+    line.BackgroundColor3 = Color3.fromRGB(80, 80, 90)
+    line.BorderSizePixel = 0
+    return line
+end
+
+local attackSubControls = {}
+
+createToggle(AttackScroll, "黑牆", function(b) if b then BlackWall:Enable() else BlackWall:Disable() end end)
+createToggle(AttackScroll, "速彈無後座", function(b) if b then SpeedNoRecoil:Enable() else SpeedNoRecoil:Disable() end end)
+
+createDivider(AttackScroll)
+
+createToggle(AttackScroll, "靜默瞄準", function(b)
+    if b then SilentAim:Enable() else SilentAim:Disable() end
+    for _, ctrl in ipairs(attackSubControls) do ctrl.Visible = b end
+    AttackScroll.CanvasSize = UDim2.new(0, 0, 0, AttackList.AbsoluteContentSize.Y + 10)
 end)
 
-local SKY_Btn = CreateToggleButton("星空", 180)
-local UA_Btn = CreateSingleButton("全皮解鎖 (點擊執行)", 230)
+local teamCheckBtn = createToggle(AttackScroll, "隊伍檢查", function(b) SilentAim.TeamCheck = b end, true)
+table.insert(attackSubControls, teamCheckBtn)
 
--- 開關事件
-BW_Btn.Activated:Connect(function()
-    BlackWall.Enabled = not BlackWall.Enabled
-    if BlackWall.Enabled then
-        BlackWall:Enable()
-        BW_Btn.BackgroundColor3 = Color3.fromRGB(0, 180, 0)
-        BW_Btn.Text = "ON"
-    else
-        BlackWall:Disable()
-        BW_Btn.BackgroundColor3 = Color3.fromRGB(200, 0, 0)
-        BW_Btn.Text = "OFF"
-    end
-end)
+local aimPartDropdown = createFloatingDropdown(AttackScroll, Panel, "部位", {"Head", "HumanoidRootPart"}, function(v) SilentAim.AimPart = v end, true)
+table.insert(attackSubControls, aimPartDropdown.MainBtn)
 
-SN_Btn.Activated:Connect(function()
-    if SpeedNoRecoil.Enabled then
-        SpeedNoRecoil:Disable()
-        SN_Btn.BackgroundColor3 = Color3.fromRGB(200, 0, 0)
-        SN_Btn.Text = "OFF"
-    else
-        SpeedNoRecoil:Enable()
-        SN_Btn.BackgroundColor3 = Color3.fromRGB(0, 180, 0)
-        SN_Btn.Text = "ON"
-    end
-end)
+local rangeLimitBtn = createToggle(AttackScroll, "範圍限制", function(b)
+    SilentAim.LimitRange = b
+    if rangeSliderRef then rangeSliderRef.Visible = b end
+    AttackScroll.CanvasSize = UDim2.new(0, 0, 0, AttackList.AbsoluteContentSize.Y + 10)
+end, true)
+table.insert(attackSubControls, rangeLimitBtn)
 
-SA_Btn.Activated:Connect(function()
-    if SilentAim.Enabled then
-        SilentAim:Disable()
-        SA_Btn.BackgroundColor3 = Color3.fromRGB(200, 0, 0)
-        SA_Btn.Text = "OFF"
-    else
-        SilentAim:Enable()
-        SA_Btn.BackgroundColor3 = Color3.fromRGB(0, 180, 0)
-        SA_Btn.Text = "ON"
-    end
-end)
+local rangeSliderRef = createSlider(AttackScroll, "最大距離", 50, 800, 300, function(v) SilentAim.MaxDistance = v end, true)
+rangeSliderRef.Visible = false
+table.insert(attackSubControls, rangeSliderRef)
 
-SKY_Btn.Activated:Connect(function()
-    if OfficialSky.Enabled then
-        OfficialSky:Disable()
-        SKY_Btn.BackgroundColor3 = Color3.fromRGB(200, 0, 0)
-        SKY_Btn.Text = "OFF"
-    else
-        OfficialSky:Enable()
-        SKY_Btn.BackgroundColor3 = Color3.fromRGB(0, 180, 0)
-        SKY_Btn.Text = "ON"
-    end
-end)
+createToggle(AttackScroll, "穿牆 Desync", function(b) if b then wallbangDesync:Start() else wallbangDesync:Stop() end end)
+createToggle(AttackScroll, "穿牆 V2", function(b) if b then wallbangV2:Start() else wallbangV2:Stop() end end)
 
-UA_Btn.Activated:Connect(function()
-    UA_Btn.Text = "執行中..."
-    UA_Btn.BackgroundColor3 = Color3.fromRGB(255, 170, 0)
+AttackScroll.CanvasSize = UDim2.new(0, 0, 0, AttackList.AbsoluteContentSize.Y + 10)
+
+-- 視覺分頁
+local visualContent = TabContents[3]
+local visualY = 0
+local visualToggle = function(name, callback)
+    local btn = Instance.new("TextButton", visualContent)
+    btn.Size = UDim2.new(1, -20, 0, 28)
+    btn.Position = UDim2.new(0, 10, 0, visualY)
+    btn.BackgroundColor3 = Color3.fromRGB(50, 50, 60)
+    btn.Text = name .. " OFF"
+    btn.TextColor3 = Color3.new(1, 1, 1)
+    btn.Font = Enum.Font.GothamBold
+    btn.TextSize = 13
+    Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 8)
+    local state = false
+    btn.Activated:Connect(function()
+        state = not state
+        btn.Text = name .. (state and " ON" or " OFF")
+        btn.BackgroundColor3 = state and Color3.fromRGB(0, 170, 0) or Color3.fromRGB(50, 50, 60)
+        callback(state)
+    end)
+    visualY = visualY + 34
+    return btn
+end
+visualToggle("星空", function(b) if b then OfficialSky:Enable() else OfficialSky:Disable() end end)
+local unlockBtn = Instance.new("TextButton", visualContent)
+unlockBtn.Size = UDim2.new(1, -20, 0, 28)
+unlockBtn.Position = UDim2.new(0, 10, 0, visualY)
+unlockBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 60)
+unlockBtn.Text = "全皮解鎖 (點擊執行)"
+unlockBtn.TextColor3 = Color3.new(1, 1, 1)
+unlockBtn.Font = Enum.Font.GothamBold
+unlockBtn.TextSize = 13
+Instance.new("UICorner", unlockBtn).CornerRadius = UDim.new(0, 8)
+unlockBtn.Activated:Connect(function()
+    unlockBtn.Text = "執行中..."
+    unlockBtn.BackgroundColor3 = Color3.fromRGB(255, 170, 0)
     task.spawn(function()
         local success, err = pcall(ExecuteUnlockAll)
-        if success then
-            UA_Btn.Text = "✅ 已解鎖"
-            UA_Btn.BackgroundColor3 = Color3.fromRGB(0, 200, 100)
-        else
-            UA_Btn.Text = "❌ 失敗"
-            UA_Btn.BackgroundColor3 = Color3.fromRGB(200, 0, 0)
-            warn("全皮解鎖失敗：", err)
-        end
-        task.wait(2)
-        UA_Btn.Text = "全皮解鎖 (點擊執行)"
-        UA_Btn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+        if success then unlockBtn.Text = "✅ 已解鎖" unlockBtn.BackgroundColor3 = Color3.fromRGB(0, 200, 100)
+        else unlockBtn.Text = "❌ 失敗" unlockBtn.BackgroundColor3 = Color3.fromRGB(200, 0, 0) warn(err) end
+        task.wait(2) unlockBtn.Text = "全皮解鎖 (點擊執行)" unlockBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 60)
     end)
 end)
 
--- 圓形
-local Circle = Instance.new("ImageButton")
-Circle.Size = UDim2.new(0, 70, 0, 70)
-Circle.Position = UDim2.new(0.5, -35, 0.5, -35)
-Circle.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-Circle.BackgroundTransparency = 1
-Circle.Image = "rbxassetid://0"
-Circle.Visible = false
-Circle.Parent = screenGui
-
-local CircleFrame = Instance.new("Frame")
-CircleFrame.Size = UDim2.new(1, 0, 1, 0)
-CircleFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-CircleFrame.BorderSizePixel = 0
-local CircleCorner = Instance.new("UICorner")
-CircleCorner.CornerRadius = UDim.new(1, 0)
-CircleCorner.Parent = CircleFrame
-CircleFrame.Parent = Circle
-
-local CircleLabel = Instance.new("TextLabel")
-CircleLabel.Size = UDim2.new(1, 0, 1, 0)
-CircleLabel.BackgroundTransparency = 1
-CircleLabel.Text = "HUB"
-CircleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-CircleLabel.Font = Enum.Font.GothamBold
-CircleLabel.TextSize = 18
-CircleLabel.Parent = CircleFrame
-
-local function SwitchToCircle()
-    Panel.Visible = false
-    Circle.Visible = true
+-- 玩家分頁
+local playerContent = TabContents[4]
+local playerY = 0
+local playerToggle = function(name, callback)
+    local btn = Instance.new("TextButton", playerContent)
+    btn.Size = UDim2.new(1, -20, 0, 28)
+    btn.Position = UDim2.new(0, 10, 0, playerY)
+    btn.BackgroundColor3 = Color3.fromRGB(50, 50, 60)
+    btn.Text = name .. " OFF"
+    btn.TextColor3 = Color3.new(1, 1, 1)
+    btn.Font = Enum.Font.GothamBold
+    btn.TextSize = 13
+    Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 8)
+    local state = false
+    btn.Activated:Connect(function()
+        state = not state
+        btn.Text = name .. (state and " ON" or " OFF")
+        btn.BackgroundColor3 = state and Color3.fromRGB(0, 170, 0) or Color3.fromRGB(50, 50, 60)
+        callback(state)
+    end)
+    playerY = playerY + 34
+    return btn
 end
-
-local function SwitchToPanel()
-    Circle.Visible = false
-    Panel.Visible = true
+local playerSlider = function(name, minV, maxV, defV, callback)
+    local c = Instance.new("Frame", playerContent)
+    c.Size = UDim2.new(1, -20, 0, 38)
+    c.Position = UDim2.new(0, 10, 0, playerY)
+    c.BackgroundColor3 = Color3.fromRGB(40, 40, 48)
+    Instance.new("UICorner", c).CornerRadius = UDim.new(0, 8)
+    local l = Instance.new("TextLabel", c)
+    l.Size = UDim2.new(1, 0, 0, 16)
+    l.Position = UDim2.new(0, 6, 0, 0)
+    l.BackgroundTransparency = 1
+    l.Text = name .. ": " .. string.format("%.1f", defV)
+    l.TextColor3 = Color3.new(1, 1, 1)
+    l.Font = Enum.Font.Gotham
+    l.TextSize = 12
+    local bar = Instance.new("Frame", c)
+    bar.Size = UDim2.new(1, -16, 0, 6)
+    bar.Position = UDim2.new(0, 8, 0, 24)
+    bar.BackgroundColor3 = Color3.fromRGB(60, 60, 70)
+    Instance.new("UICorner", bar).CornerRadius = UDim.new(0, 3)
+    local fill = Instance.new("Frame", bar)
+    fill.Size = UDim2.new((defV - minV) / (maxV - minV), 0, 1, 0)
+    fill.BackgroundColor3 = Color3.fromHSV(0.58, 1, 1)
+    Instance.new("UICorner", fill).CornerRadius = UDim.new(0, 3)
+    local function update(pos)
+        local x = math.clamp((pos.X - bar.AbsolutePosition.X) / bar.AbsoluteSize.X, 0, 1)
+        fill.Size = UDim2.new(x, 0, 1, 0)
+        local val = minV + (maxV - minV) * x
+        l.Text = name .. ": " .. string.format("%.1f", val)
+        callback(val)
+    end
+    bar.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.Touch then
+            activeSlider = update
+            update(input.Position)
+        end
+    end)
+    playerY = playerY + 44
+    return c
 end
+playerSlider("速度倍率", 0, 0.7, 0.3, function(v) SpeedMultiplier = v end)
+playerToggle("啟用加速", function(b) SpeedEnabled = b end)
+playerSlider("跳躍倍率", 1, 10, 2, function(v) JumpMultiplier = v end)
+playerSlider("重力倍率", 0.1, 3, 1, function(v) GravitySetting = v end)
+playerToggle("無限跳躍", function(b) InfiniteJumpEnabled = b end)
 
-MinBtn.Activated:Connect(SwitchToCircle)
-Circle.Activated:Connect(SwitchToPanel)
-
--- 拖曳
-Circle.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.Touch then
-        isDragging = true
-        dragStart = input.Position
-        startPos = Circle.Position
-        input.Changed:Connect(function()
-            if input.UserInputState == Enum.UserInputState.End then
-                isDragging = false
-            end
-        end)
-    end
-end)
-
-UserInputService.TouchMoved:Connect(function(touch, gameProcessed)
-    if not isDragging then return end
-    local delta = touch.Position - dragStart
-    Circle.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
-end)
-
-TitleBar.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.Touch then
-        isDragging = true
-        dragStart = input.Position
-        startPos = Panel.Position
-        input.Changed:Connect(function()
-            if input.UserInputState == Enum.UserInputState.End then
-                isDragging = false
-            end
-        end)
-    end
-end)
-
-print("狗狗給hub 已加載 | 防封已啟用 | 距離輸入框已改")
+print("星輝輔助hub 完整修復版已載入")
