@@ -1,29 +1,530 @@
-local function _0(_1)local _2={}for _3=1,#_1 do _2[_3]=_1:sub(_3,_3):byte()end;return _2 end
-local function _4(_5)local _6={}for _7=1,#_5 do _6[_7]=string.char(_5[_7])end;return table.concat(_6)end
-local _8=_4({80,108,97,121,101,114,115})local _9=_4({67,111,114,101,71,117,105})local _10=_4({85,115,101,114,73,110,112,117,116,83,101,114,118,105,99,101})local _11=_4({84,119,101,101,110,83,101,114,118,105,99,101})local _12=_4({82,117,110,83,101,114,118,105,99,101})local _13=_4({82,101,112,108,105,99,97,116,101,100,83,116,111,114,97,103,101})local _14=_4({76,105,103,104,116,105,110,103})local _15=_4({87,111,114,107,115,112,97,99,101})local _16=_4({67,97,109,101,114,97})local _17=_4({72,116,116,112,83,101,114,118,105,99,101})local _18=game:GetService(_8)local _19=_18.LocalPlayer local _20=game:GetService(_9)local _21=game:GetService(_10)local _22=game:GetService(_11)local _23=game:GetService(_12)local _24=game:GetService(_13)local _25=game:GetService(_14)local _26=game:GetService(_15)local _27=_26.CurrentCamera local _28=game:GetService(_17)
-pcall(function()if syn and syn.protect_gui then syn.protect_gui(_20)end;if setfflag then setfflag(_4({65,98,117,115,101,82,101,112,111,114,116,83,99,114,101,101,110,115,104,111,116}),_4({70,97,108,115,101}))setfflag(_4({65,98,117,115,101,82,101,112,111,114,116,83,99,114,101,101,110,115,104,111,116,80,101,114,99,101,110,116,97,103,101}),_4({48}))end end)
-local _29={Enabled=false,Connection=nil,TARGET_NAMES={_4({80,97,114,116}),_4({84,114,117,115,115}),_4({70,108,111,111,114}),_4({87,97,108,108})},DARK_COLOR=Color3.new(0.15,0.15,0.15),Enable=function(self)if self.Connection then return end;self.Connection=_23.RenderStepped:Connect(function()pcall(function()for _,part in ipairs(workspace:GetDescendants())do if part:IsA(_4({66,97,115,101,80,97,114,116}))then for _,name in ipairs(self.TARGET_NAMES)do if part.Name==name then part.Color=self.DARK_COLOR break end end end end end)end)end,Disable=function(self)if self.Connection then self.Connection:Disconnect()self.Connection=nil end end}
-local _30={Enabled=false,HookSetup=false,Enable=function(self)if self.Enabled then return end;self.Enabled=true;if not self.HookSetup then self:_setup()self.HookSetup=true end end,Disable=function(self)self.Enabled=false end,_setup=function(self)pcall(function()local PS=_19:WaitForChild(_4({80,108,97,121,101,114,83,99,114,105,112,116,115}))local CI=PS:WaitForChild(_4({77,111,100,117,108,101,115})):WaitForChild(_4({67,108,105,101,110,116,82,101,112,108,105,99,97,116,101,100,67,108,97,115,115,101,115})):WaitForChild(_4({67,108,105,101,110,116,70,105,103,104,116,101,114})):WaitForChild(_4({67,108,105,101,110,116,73,116,101,109}))local m=require(CI)local orig=m.Input m.Input=function(...)local args={...}if self.Enabled and args[1]and args[1].Info then args[1].Info.ShootRecoil=0 args[1].Info.ShootSpread=0 args[1].Info.ProjectileSpeed=99999999 args[1].Info.ShootCooldown=0 args[1].Info.QuickShotCooldown=0 end;return orig(...)end end)end}
-local _31={Enabled=false,TeamCheck=false,AimPart=_4({72,101,97,100}),LimitRange=false,MaxDistance=300,CurrentTarget=nil,Hooked=false}
-local function _32()local _33=_19.Character if not _33 then return nil end;local _34=_33:FindFirstChild(_4({72,117,109,97,110,111,105,100,82,111,111,116,80,97,114,116}))if not _34 then return nil end;local _35=_34.Position local _36,_37=nil,math.huge for _38,_39 in ipairs(_18:GetPlayers())do if _39==_19 then continue end;if _31.TeamCheck then if _19.Team and _39.Team==_19.Team then continue end;local _40=_19:GetAttribute(_4({84,101,97,109,73,68}))local _41=_39:GetAttribute(_4({84,101,97,109,73,68}))if _40 and _41 and _40==_41 then continue end end;local _42=_39.Character if not _42 then continue end;local _43=_42:FindFirstChild(_31.AimPart)local _44=_42:FindFirstChildWhichIsA(_4({72,117,109,97,110,111,105,100}))if not(_43 and _44 and _44.Health>0)then continue end;local _45=(_43.Position-_35).Magnitude if _31.LimitRange and _45>_31.MaxDistance then continue end;if _45<_37 then _37=_45 _36=_43 end end;return _36 end
-function _31:Enable()if self.Enabled then return end;self.Enabled=true;if not self.Hooked then local _46;_46=hookmetamethod(game,_4({95,95,110,97,109,101,99,97,108,108}),function(self,...)local _47=getnamecallmethod()local _48={...}if _31.Enabled and _31.CurrentTarget and self==_26 and(_47==_4({82,97,121,99,97,115,116})or _47==_4({114,97,121,99,97,115,116}))then local _49=_48[1]local _50=_48[2]if typeof(_49)==_4({86,101,99,116,111,114,51})and typeof(_50)==_4({86,101,99,116,111,114,51})and _50.Magnitude>50 then _48[2]=(_31.CurrentTarget.Position-_49).Unit*_50.Magnitude return _46(self,unpack(_48))end end;return _46(self,...)end)self.Hooked=true end;_23.RenderStepped:Connect(function()if _31.Enabled then _31.CurrentTarget=_32()else _31.CurrentTarget=nil end end)end
-function _31:Disable()self.Enabled=false self.CurrentTarget=nil end
-local _51={Enabled=false,SkyInstance=nil,OfficialIds={Ft=_4({50,53,55,48,52,51,50,57,57,56}),Bk=_4({50,53,55,48,52,51,50,57,57,57}),Lf=_4({50,53,55,48,52,51,51,48,48,48}),Rt=_4({50,53,55,48,52,51,50,57,57,55}),Up=_4({50,53,55,48,52,51,50,57,57,54}),Dn=_4({50,53,55,48,52,51,51,48,48,53})},Enable=function(self)if self.Enabled then return end;self.Enabled=true self:clearSky()local _52=Instance.new(_4({83,107,121}),_25)_52.SkyboxFt=_4({114,98,120,97,115,115,101,116,105,100,58,47,47})..self.OfficialIds.Ft _52.SkyboxBk=_4({114,98,120,97,115,115,101,116,105,100,58,47,47})..self.OfficialIds.Bk _52.SkyboxLf=_4({114,98,120,97,115,115,101,116,105,100,58,47,47})..self.OfficialIds.Lf _52.SkyboxRt=_4({114,98,120,97,115,115,101,116,105,100,58,47,47})..self.OfficialIds.Rt _52.SkyboxUp=_4({114,98,120,97,115,115,101,116,105,100,58,47,47})..self.OfficialIds.Up _52.SkyboxDn=_4({114,98,120,97,115,115,101,116,105,100,58,47,47})..self.OfficialIds.Dn self.SkyInstance=_52 end,Disable=function(self)self.Enabled=false self:clearSky()end,clearSky=function(self)for _,obj in ipairs(_25:GetChildren())do if obj:IsA(_4({83,107,121}))then obj:Destroy()end end;self.SkyInstance=nil end}
-local _53={}_53.__index=_53
-function _53.new()local self=setmetatable({},_53)self.Active=false self.Target=nil self.Desyncing=false self.HeartbeatConn=nil self.DesyncConn=nil self.RestoreTask=nil self.OldStartShooting=nil return self end
-function _53:Start()if self.Active then return end;self.Active=true local _54=_19.PlayerScripts:FindFirstChild(_4({77,111,100,117,108,101,115}))and _19.PlayerScripts.Modules:FindFirstChild(_4({73,116,101,109,84,121,112,101,115}))and _19.PlayerScripts.Modules.ItemTypes:FindFirstChild(_4({71,117,110}))if not _54 then warn(_4({230,137,190,228,184,141,229,136,176,32,71,117,110,32,230,168,161,231,181,132}))self.Active=false return end;local _55=require(_54)local _56=require(_24:FindFirstChild(_4({77,111,100,117,108,101,115}))and _24.Modules:FindFirstChild(_4({85,116,105,108,105,116,121})))self.HeartbeatConn=_23.Heartbeat:Connect(function()if not self.Active then return end;local _57=_21:GetMouseLocation()local _58=nil local _59=math.huge for _60,_61 in ipairs(_18:GetPlayers())do if _61==_19 then continue end;if _61:GetAttribute(_4({84,101,97,109,73,68}))==_19:GetAttribute(_4({84,101,97,109,73,68}))then continue end;local _62=_61.Character if not _62 then continue end;local _63=_62:FindFirstChild(_4({72,117,109,97,110,111,105,100,82,111,111,116,80,97,114,116}))local _64=_62:FindFirstChild(_4({72,101,97,100}))local _65=_62:FindFirstChildWhichIsA(_4({72,117,109,97,110,111,105,100}))if not(_63 and _64 and _65 and _65.Health>0)then continue end;local _66,_67=_27:WorldToViewportPoint(_63.Position)if not _67 then continue end;local _68=(Vector2.new(_66.X,_66.Y)-_57).Magnitude if _68<_59 then _59=_68 _58=_61 end end;self.Target=_58 end)self.OldStartShooting=_55.StartShooting _55.StartShooting=function(gun,...)local _69={self.OldStartShooting(gun,...)}if not self.Active then return unpack(_69)end;if not gun.ClientFighter or not gun.ClientFighter.IsLocalPlayer then return unpack(_69)end;local _70=_69[3]if not _70 or typeof(_70)~=_4({116,97,98,108,101})then return unpack(_69)end;_69[4]=true local _71=self.Target if not _71 or not _71.Character then return unpack(_69)end;if not self.Desyncing or self.CurrentDesyncTarget~=_71 then self:StartDesync(_71)task.wait(0.1)end;local _72=_71.Character:FindFirstChild(_4({72,101,97,100}))if not _72 then return unpack(_69)end;local _73=_72.Position local _74=_72.CFrame local _75=_73-Vector3.new(0,5,0)local _76=CFrame.lookAt(_75,_73)local _77=_74:ToObjectSpace(CFrame.new(_73+Vector3.new(math.random(),math.random(),math.random())))_70[utf8.char(0)]=_56:EncodeCFrame(CFrame.new(_75,_73)*CFrame.Angles(_76:ToOrientation()))_70[utf8.char(1)]=_56:EncodeCFrame(CFrame.new(_73)*CFrame.Angles(_76:ToOrientation()))_70[utf8.char(2)]=_72 _70[utf8.char(3)]=_56:EncodeCFrame(_77)if self.RestoreTask then task.cancel(self.RestoreTask)end;self.RestoreTask=task.delay(0.15,function()self:StopDesync()end)return unpack(_69)end end
-function _53:StartDesync(_78)self:StopDesync()self.Desyncing=true self.CurrentDesyncTarget=_78 local _79=_19.Character if not _79 then return end;local _80=_79:FindFirstChild(_4({72,117,109,97,110,111,105,100,82,111,111,116,80,97,114,116}))if not _80 then return end;self.DesyncConn=_23.Heartbeat:Connect(function()if not self.Desyncing then return end;local _81=_78.Character and _78.Character:FindFirstChild(_4({72,117,109,97,110,111,105,100,82,111,111,116,80,97,114,116}))if not _81 then self:StopDesync()return end;local _82=_80.CFrame local _83=_80.Velocity local _84=_80.RotVelocity _80.CFrame=_81.CFrame*CFrame.new(0,-5,0)_23:BindToRenderStep(_4({87,97,108,108,98,97,110,103,82,101,115,116,111,114,101}),101,function()pcall(function()_80.CFrame=_82 _80.Velocity=_83 _80.RotVelocity=_84 end)_23:UnbindFromRenderStep(_4({87,97,108,108,98,97,110,103,82,101,115,116,111,114,101}))end)end)end
-function _53:StopDesync()self.Desyncing=false self.CurrentDesyncTarget=nil if self.DesyncConn then self.DesyncConn:Disconnect()self.DesyncConn=nil end;if self.RestoreTask then task.cancel(self.RestoreTask)self.RestoreTask=nil end end
-function _53:Stop()self.Active=false self:StopDesync()if self.HeartbeatConn then self.HeartbeatConn:Disconnect()self.HeartbeatConn=nil end;if self.OldStartShooting then local _85=_19.PlayerScripts:FindFirstChild(_4({77,111,100,117,108,101,115}))and _19.PlayerScripts.Modules:FindFirstChild(_4({73,116,101,109,84,121,112,101,115}))and _19.PlayerScripts.Modules.ItemTypes:FindFirstChild(_4({71,117,110}))if _85 then local _86=require(_85)_86.StartShooting=self.OldStartShooting end;self.OldStartShooting=nil end end
-local _87={}_87.__index=_87
-function _87.new()local self=setmetatable({},_87)self.__active=true self.__target=nil self.__desync=false self.__conn1=nil self.__conn2=nil self.__task1=nil self.__oldfunc=nil return self end
-function _87:Start()if self.__conn1 then return end;local _88=_19.PlayerScripts:FindFirstChild(_4({77,111,100,117,108,101,115}))and _19.PlayerScripts.Modules:FindFirstChild(_4({73,116,101,109,84,121,112,101,115}))and _19.PlayerScripts.Modules.ItemTypes:FindFirstChild(_4({71,117,110}))if not _88 then warn(_4({230,137,190,228,184,141,229,136,176,32,71,117,110,32,230,168,161,231,181,132}))return end;local _89=require(_88)local _90=require(_24:FindFirstChild(_4({77,111,100,117,108,101,115})):FindFirstChild(_4({85,116,105,108,105,116,121})))self.__conn1=_23.Heartbeat:Connect(function()if not self.__active then return end;local _91=_21:GetMouseLocation()local _92,_93=nil,math.huge for _94,_95 in ipairs(_18:GetPlayers())do if _95==_19 then continue end;if _95:GetAttribute(_4({84,101,97,109,73,68}))==_19:GetAttribute(_4({84,101,97,109,73,68}))then continue end;local _96=_95.Character if not _96 then continue end;local _97=_96:FindFirstChild(_4({72,117,109,97,110,111,105,100,82,111,111,116,80,97,114,116}))local _98=_96:FindFirstChild(_4({72,101,97,100}))local _99=_96:FindFirstChildWhichIsA(_4({72,117,109,97,110,111,105,100}))if not(_97 and _98 and _99 and _99.Health>0)then continue end;local _100,_101=_27:WorldToViewportPoint(_97.Position)if not _101 then continue end;local _102=(Vector2.new(_100.X,_100.Y)-_91).Magnitude if _102<_93 then _93=_102 _92=_95 end end;self.__target=_92 end)self.__oldfunc=_89.StartShooting _89.StartShooting=function(gun,...)local _103={self.__oldfunc(gun,...)}if not self.__active then return unpack(_103)end;if not(gun.ClientFighter and gun.ClientFighter.IsLocalPlayer)then return unpack(_103)end;local _104=_103[3]if not _104 or typeof(_104)~=_4({116,97,98,108,101})then return unpack(_103)end;_103[4]=true local _105=self.__target if not _105 or not _105.Character then return unpack(_103)end;if not self.__desync or self.__curr~=_105 then self:DesyncStart(_105)task.wait(0.01)end;local _106=_105.Character:FindFirstChild(_4({72,101,97,100}))if not _106 then return unpack(_103)end;local _107=_106.Position local _108=_106.CFrame local _109=_107-Vector3.new(0,5,0)local _110=CFrame.lookAt(_109,_107)local _111=_108:ToObjectSpace(CFrame.new(_107+Vector3.new(math.random(),math.random(),math.random())))_104[utf8.char(0)]=_90:EncodeCFrame(CFrame.new(_109,_107)*CFrame.Angles(_110:ToOrientation()))_104[utf8.char(1)]=_90:EncodeCFrame(CFrame.new(_107)*CFrame.Angles(_110:ToOrientation()))_104[utf8.char(2)]=_106 _104[utf8.char(3)]=_90:EncodeCFrame(_111)if self.__task1 then task.cancel(self.__task1)end;self.__task1=task.delay(0.15,function()self:DesyncStop()end)return unpack(_103)end end
-function _87:DesyncStart(_112)self:DesyncStop()self.__desync=true self.__curr=_112 local _113=_19.Character and _19.Character:FindFirstChild(_4({72,117,109,97,110,111,105,100,82,111,111,116,80,97,114,116}))if not _113 then return end;self.__conn2=_23.Heartbeat:Connect(function()if not self.__desync then return end;local _114=_112.Character and _112.Character:FindFirstChild(_4({72,117,109,97,110,111,105,100,82,111,111,116,80,97,114,116}))if not _114 then self:DesyncStop()return end;local _115=_113.CFrame local _116=_113.Velocity local _117=_113.RotVelocity _113.CFrame=_114.CFrame*CFrame.new(0,-5,0)_23:BindToRenderStep(_4({87,97,108,108,86,50,82,101,115,116,111,114,101}),101,function()pcall(function()_113.CFrame=_115 _113.Velocity=_116 _113.RotVelocity=_117 end)_23:UnbindFromRenderStep(_4({87,97,108,108,86,50,82,101,115,116,111,114,101}))end)end)end
-function _87:DesyncStop()self.__desync=false self.__curr=nil if self.__conn2 then self.__conn2:Disconnect()self.__conn2=nil end end
-function _87:Stop()self.__active=false self:DesyncStop()if self.__conn1 then self.__conn1:Disconnect()self.__conn1=nil end;if self.__oldfunc then local _118=_19.PlayerScripts:FindFirstChild(_4({77,111,100,117,108,101,115}))and _19.PlayerScripts.Modules:FindFirstChild(_4({73,116,101,109,84,121,112,101,115}))and _19.PlayerScripts.Modules.ItemTypes:FindFirstChild(_4({71,117,110}))if _118 then local _119=require(_118)_119.StartShooting=self.__oldfunc end;self.__oldfunc=nil end end
-local function _120()local a=_18 local b=_24 local c=_28 local d=_19 local e=d.PlayerScripts local f=e.Controllers local g=require(b.Modules:WaitForChild(_4({69,110,117,109,76,105,98,114,97,114,121}),10))if g then g:WaitForEnumBuilder()end;local h=require(b.Modules:WaitForChild(_4({67,111,115,109,101,116,105,99,76,105,98,114,97,114,121}),10))local i=require(b.Modules:WaitForChild(_4({73,116,101,109,76,105,98,114,97,114,121}),10))local j=require(f:WaitForChild(_4({80,108,97,121,101,114,68,97,116,97,67,111,110,116,114,111,108,108,101,114}),10))local k,l={},{}local m,n=nil,nil local o=nil local function p(q,r,s)local t=h.Cosmetics[q]if not t then return nil end;local u={}for v,w in pairs(t)do u[v]=w end;u.Name=q u.Type=u.Type or r u.Seed=u.Seed or math.random(1,1000000)if g then local x,y=pcall(g.ToEnum,g,q)if x and y then u.Enum,u.ObjectID=y,u.ObjectID or y end end;if s then if s.inverted~=nil then u.Inverted=s.inverted end;if s.favoritesOnly~=nil then u.OnlyUseFavorites=s.favoritesOnly end end;return u end;local z=_4({117,110,108,111,99,107,97,108,108,47,99,111,110,102,105,103,46,106,115,111,110})local function A()if not writefile then return end;pcall(function()local B={equipped={},favorites=l}for C,D in pairs(k)do B.equipped[C]={}for E,F in pairs(D)do if F and F.Name then B.equipped[C][E]={name=F.Name,seed=F.Seed,inverted=F.Inverted}end end end;makefolder(_4({117,110,108,111,99,107,97,108,108}))writefile(z,c:JSONEncode(B))end)end;local function G()if not readfile or not isfile or not isfile(z)then return end;pcall(function()local B=c:JSONDecode(readfile(z))if B.equipped then for C,D in pairs(B.equipped)do k[C]={}for E,F in pairs(D)do local H=p(F.name,E,{inverted=F.inverted})if H then H.Seed=F.seed k[C][E]=H end end end end;l=B.favorites or{}end)end;h.OwnsCosmeticNormally=function(I,J,q,C)local K=h.Cosmetics[q]if K and K.Type==_4({83,107,105,110})then return true end;return false end;h.OwnsCosmeticUniversally=function(I,J,q,C)local K=h.Cosmetics[q]if K and K.Type==_4({83,107,105,110})then return true end;return false end;h.OwnsCosmeticForWeapon=function(I,J,q,C)local K=h.Cosmetics[q]if K and K.Type==_4({83,107,105,110})then return true end;return false end;local L=h.OwnsCosmetic h.OwnsCosmetic=function(I,J,q,C)if q:find(_4({77,73,83,83,73,78,71,95}))then return L(I,J,q,C)end;local K=h.Cosmetics[q]if K and K.Type==_4({83,107,105,110})then return true end;return L(I,J,q,C)end;local M=j.Get j.Get=function(I,N)local O=M(I,N)if N==_4({67,111,115,109,101,116,105,99,73,110,118,101,110,116,111,114,121})then local P={}if O then for Q,R in pairs(O)do local K=h.Cosmetics[Q]if K and K.Type==_4({83,107,105,110})then P[Q]=R end end end;return setmetatable(P,{__index=function(S,Q)local K=h.Cosmetics[Q]if K and K.Type==_4({83,107,105,110})then return true end;return nil end})end;if N==_4({70,97,118,111,114,105,116,101,100,67,111,115,109,101,116,105,99,115})then local T=O and table.clone(O)or{}for C,U in pairs(l)do T[C]=T[C]or{}for q,V in pairs(U)do local K=h.Cosmetics[q]if K and K.Type==_4({83,107,105,110})then T[C][q]=V end end end;return T end;return O end;local W=j.GetWeaponData j.GetWeaponData=function(I,C)local X=W(I,C)if not X then return nil end;local Y={}for v,w in pairs(X)do Y[v]=w end;Y.Name=C if k[C]then for E,F in pairs(k[C])do if E==_4({83,107,105,110})then Y[E]=F end end end;return Y end;local Z pcall(function()Z=require(f:WaitForChild(_4({70,105,103,104,116,101,114,67,111,110,116,114,111,108,108,101,114}),10))end)if hookmetamethod then local _=b:FindFirstChild(_4({82,101,109,111,116,101,115}))local a0=_ and _:FindFirstChild(_4({68,97,116,97}))local a1=a0 and a0:FindFirstChild(_4({69,113,117,105,112,67,111,115,109,101,116,105,99}))local a2=a0 and a0:FindFirstChild(_4({70,97,118,111,114,105,116,101,67,111,115,109,101,116,105,99}))local a3=_ and _:FindFirstChild(_4({82,101,112,108,105,99,97,116,105,111,110}))local a4=a3 and a3:FindFirstChild(_4({70,105,103,104,116,101,114}))local a5=a4 and a4:FindFirstChild(_4({85,115,101,73,116,101,109}))if a1 then local a6 a6=hookmetamethod(game,_4({95,95,110,97,109,101,99,97,108,108}),function(I,...)if getnamecallmethod()~=_4({70,105,114,101,83,101,114,118,101,114})then return a6(I,...)end;local a7={...}if a5 and I==a5 then local a8=a7[1]if Z then pcall(function()local a9=Z:GetFighter(d)if a9 and a9.Items then for _,ba in pairs(a9.Items)do if ba:Get(_4({79,98,106,101,99,116,73,68}))==a8 then o=ba.Name break end end end end)end end;if I==a1 then local C,E,q,bb=a7[1],a7[2],a7[3],a7[4]or{}if E~=_4({83,107,105,110})then return a6(I,...)end;if q and q~=_4({78,111,110,101})and q~=_4({})then local bc=j:Get(_4({67,111,115,109,101,116,105,99,73,110,118,101,110,116,111,114,121}))if bc and rawget(bc,q)then return a6(I,...)end end;k[C]=k[C]or{}if not q or q==_4({78,111,110,101})or q==_4({})then k[C][E]=nil if not next(k[C])then k[C]=nil end else local bd=p(q,E,{inverted=bb.IsInverted,favoritesOnly=bb.OnlyUseFavorites})if bd then k[C][E]=bd end end;task.defer(function()pcall(function()j.CurrentData:Replicate(_4({87,101,97,112,111,110,73,110,118,101,110,116,111,114,121}))end)task.wait(0.2)A()end)return end;if I==a2 then local K=h.Cosmetics[a7[2]]if K and K.Type==_4({83,107,105,110})then l[a7[1]]=l[a7[1]]or{}l[a7[1]][a7[2]]=a7[3]or nil A()task.spawn(function()pcall(function()j.CurrentData:Replicate(_4({70,97,118,111,114,105,116,101,100,67,111,115,109,101,116,105,99,115}))end)end)end;return end;return a6(I,...)end)end end;local be pcall(function()be=require(d.PlayerScripts.Modules.ClientReplicatedClasses.ClientFighter.ClientItem)end)if be and be._CreateViewModel then local bf=be._CreateViewModel be._CreateViewModel=function(I,bg)local C=I.Name local bh=I.ClientFighter and I.ClientFighter.Player m=(bh==d)and C or nil if bh==d and k[C]and k[C].Skin and bg then local bi,bj,bk=I:ToEnum(_4({68,97,116,97})),I:ToEnum(_4({83,107,105,110})),I:ToEnum(_4({78,97,109,101}))if bg[bi]then bg[bi][bj]=k[C].Skin bg[bi][bk]=k[C].Skin.Name elseif bg.Data then bg.Data.Skin=k[C].Skin bg.Data.Name=k[C].Skin.Name end end;local bl=bf(I,bg)m=nil return bl end end;local bm=d.PlayerScripts.Modules.ClientReplicatedClasses.ClientFighter.ClientItem:FindFirstChild(_4({67,108,105,101,110,116,86,105,101,119,77,111,100,101,108}))if bm then local bn=require(bm)local bo=bn.new bn.new=function(bp,bq)local br=bq.ClientFighter and bq.ClientFighter.Player local C=m or bq.Name if br==d and k[C]then local bs=require(b.Modules.ReplicatedClass)local bt=bs:ToEnum(_4({68,97,116,97}))bp[bt]=bp[bt]or{}local bu=k[C]if bu.Skin then bp[bt][bs:ToEnum(_4({83,107,105,110}))]=bu.Skin end end;local bv=bo(bp,bq)return bv end end;local bw=i.GetViewModelImageFromWeaponData i.GetViewModelImageFromWeaponData=function(I,bx,by)if not bx then return bw(I,bx,by)end;local C=bx.Name local bz=(bx.Skin and k[C]and bx.Skin==k[C].Skin)or(n==d and k[C]and k[C].Skin)if bz and k[C]and k[C].Skin then local bA=I.ViewModels[k[C].Skin.Name]if bA then return bA[by and _4({73,109,97,103,101,72,105,103,104,82,101,115,111,108,117,116,105,111,110})or _4({73,109,97,103,101})]or bA.Image end end;return bw(I,bx,by)end;local bB=h.OwnsCosmetic h.OwnsCosmetic=function(I,J,q,C)if q:find(_4({77,73,83,83,73,78,71,95}))then return bB(I,J,q,C)end;local K=h.Cosmetics[q]if K and(K.Type==_4({67,104,97,114,109})or q:lower():find(_4({99,104,97,114,109})))then return true end;return bB(I,J,q,C)end;local bC=j.Get j.Get=function(I,N)local O=bC(I,N)if N==_4({67,111,115,109,101,116,105,99,73,110,118,101,110,116,111,114,121})then local P={}if O then for Q,R in pairs(O)do local K=h.Cosmetics[Q]if K and(K.Type==_4({67,104,97,114,109})or Q:lower():find(_4({99,104,97,114,109})))then P[Q]=R end end end;return setmetatable(P,{__index=function(S,Q)local K=h.Cosmetics[Q]if K and(K.Type==_4({67,104,97,114,109})or Q:lower():find(_4({99,104,97,114,109})))then return true end;return nil end})end;if N==_4({70,97,118,111,114,105,116,101,100,67,111,115,109,101,116,105,99,115})then local T=O and table.clone(O)or{}for C,U in pairs(l)do T[C]=T[C]or{}for q,V in pairs(U)do local K=h.Cosmetics[q]if K and(K.Type==_4({67,104,97,114,109})or q:lower():find(_4({99,104,97,114,109})))then T[C][q]=V end end end;return T end;return O end;if hookmetamethod then local _=b:FindFirstChild(_4({82,101,109,111,116,101,115}))local a0=_ and _:FindFirstChild(_4({68,97,116,97}))local a1=a0 and a0:FindFirstChild(_4({69,113,117,105,112,67,111,115,109,101,116,105,99}))local a2=a0 and a0:FindFirstChild(_4({70,97,118,111,114,105,116,101,67,111,115,109,101,116,105,99}))if a1 then local a6 a6=hookmetamethod(game,_4({95,95,110,97,109,101,99,97,108,108}),function(I,...)if getnamecallmethod()~=_4({70,105,114,101,83,101,114,118,101,114})then return a6(I,...)end;local a7={...}if I==a1 then local C,E,q,bb=a7[1],a7[2],a7[3],a7[4]or{}if E~=_4({67,104,97,114,109})then return a6(I,...)end;if q and q~=_4({78,111,110,101})and q~=_4({})then local bc=j:Get(_4({67,111,115,109,101,116,105,99,73,110,118,101,110,116,111,114,121}))if bc and rawget(bc,q)then return a6(I,...)end end;k[C]=k[C]or{}if not q or q==_4({78,111,110,101})or q==_4({})then k[C][E]=nil if not next(k[C])then k[C]=nil end else local bd=p(q,E,{inverted=bb.IsInverted,favoritesOnly=bb.OnlyUseFavorites})if bd then k[C][E]=bd end end;task.defer(function()pcall(function()j.CurrentData:Replicate(_4({87,101,97,112,111,110,73,110,118,101,110,116,111,114,121}))end)task.wait(0.2)A()end)return end;if I==a2 then local K=h.Cosmetics[a7[2]]if K and(K.Type==_4({67,104,97,114,109})or a7[2]:lower():find(_4({99,104,97,114,109})))then l[a7[1]]=l[a7[1]]or{}l[a7[1]][a7[2]]=a7[3]or nil A()task.spawn(function()pcall(function()j.CurrentData:Replicate(_4({70,97,118,111,114,105,116,101,100,67,111,115,109,101,116,105,99,115}))end)end)end;return end;return a6(I,...)end)end end;if be and be._CreateViewModel then local bD=be._CreateViewModel be._CreateViewModel=function(I,bg)local C=I.Name local bh=I.ClientFighter and I.ClientFighter.Player m=(bh==d)and C or nil if bh==d and k[C]and k[C].Charm and bg then local bi,bj,bk=I:ToEnum(_4({68,97,116,97})),I:ToEnum(_4({67,104,97,114,109})),I:ToEnum(_4({78,97,109,101}))if bg[bi]then bg[bi][bj]=k[C].Charm bg[bi][bk]=k[C].Charm.Name elseif bg.Data then bg.Data.Charm=k[C].Charm bg.Data.Name=k[C].Charm.Name end end;local bl=bD(I,bg)m=nil return bl end end;if bm then local bn=require(bm)if bn.GetCharm then local bE=bn.GetCharm bn.GetCharm=function(I)local C=I.ClientItem and I.ClientItem.Name local bh=I.ClientItem and I.ClientItem.ClientFighter and I.ClientItem.ClientFighter.Player if C and bh==d and k[C]and k[C].Charm then return k[C].Charm end;return bE(I)end end;local bF=bn.new bn.new=function(bp,bq)local bh=bq.ClientFighter and bq.ClientFighter.Player local C=m or bq.Name if bh==d and k[C]then local bs=require(b.Modules.ReplicatedClass)local bt=bs:ToEnum(_4({68,97,116,97}))bp[bt]=bp[bt]or{}local bu=k[C]if bu.Charm then bp[bt][bs:ToEnum(_4({67,104,97,114,109}))]=bu.Charm end end;local bv=bF(bp,bq)return bv end end;local bG=h.OwnsCosmetic h.OwnsCosmetic=function(I,J,q,C)if q:find(_4({77,73,83,83,73,78,71,95}))then return bG(I,J,q,C)end;local K=h.Cosmetics[q]if K and(K.Type==_4({68,97,110,99,101})or K.Type==_4({69,109,111,116,101})or q:lower():find(_4({100,97,110,99,101}))or q:lower():find(_4({101,109,111,116,101})))then return true end;return bG(I,J,q,C)end;local bH=j.Get j.Get=function(I,N)local O=bH(I,N)if N==_4({67,111,115,109,101,116,105,99,73,110,118,101,110,116,111,114,121})then local P={}if O then for Q,R in pairs(O)do local K=h.Cosmetics[Q]if K and(K.Type==_4({68,97,110,99,101})or K.Type==_4({69,109,111,116,101})or Q:lower():find(_4({100,97,110,99,101}))or Q:lower():find(_4({101,109,111,116,101})))then P[Q]=R end end end;return setmetatable(P,{__index=function(S,Q)local K=h.Cosmetics[Q]if K and(K.Type==_4({68,97,110,99,101})or K.Type==_4({69,109,111,116,101})or Q:lower():find(_4({100,97,110,99,101}))or Q:lower():find(_4({101,109,111,116,101})))then return true end;return nil end})end;if N==_4({70,97,118,111,114,105,116,101,100,67,111,115,109,101,116,105,99,115})then local T=O and table.clone(O)or{}for C,U in pairs(l)do T[C]=T[C]or{}for q,V in pairs(U)do local K=h.Cosmetics[q]if K and(K.Type==_4({68,97,110,99,101})or K.Type==_4({69,109,111,116,101})or q:lower():find(_4({100,97,110,99,101}))or q:lower():find(_4({101,109,111,116,101})))then T[C][q]=V end end end;return T end;return O end;if hookmetamethod then local _=b:FindFirstChild(_4({82,101,109,111,116,101,115}))local a0=_ and _:FindFirstChild(_4({68,97,116,97}))local a1=a0 and a0:FindFirstChild(_4({69,113,117,105,112,67,111,115,109,101,116,105,99}))local a2=a0 and a0:FindFirstChild(_4({70,97,118,111,114,105,116,101,67,111,115,109,101,116,105,99}))if a1 then local a6 a6=hookmetamethod(game,_4({95,95,110,97,109,101,99,97,108,108}),function(I,...)if getnamecallmethod()~=_4({70,105,114,101,83,101,114,118,101,114})then return a6(I,...)end;local a7={...}if I==a1 then local C,E,q,bb=a7[1],a7[2],a7[3],a7[4]or{}if E==_4({68,97,110,99,101})or E==_4({69,109,111,116,101})or(q and(q:lower():find(_4({100,97,110,99,101}))or q:lower():find(_4({101,109,111,116,101}))))then k.Dances=k.Dances or{}if not q or q==_4({78,111,110,101})or q==_4({})then k.Dances[E]=nil else local bd=p(q,E,{inverted=bb.IsInverted,favoritesOnly=bb.OnlyUseFavorites})if bd then k.Dances[E]=bd end end;task.defer(function()pcall(function()j.CurrentData:Replicate(_4({67,111,115,109,101,116,105,99,73,110,118,101,110,116,111,114,121}))end)task.wait(0.2)A()end)return end;return a6(I,...)end;if I==a2 then local K=h.Cosmetics[a7[2]]if K and(K.Type==_4({68,97,110,99,101})or K.Type==_4({69,109,111,116,101})or a7[2]:lower():find(_4({100,97,110,99,101}))or a7[2]:lower():find(_4({101,109,111,116,101})))then l[a7[1]]=l[a7[1]]or{}l[a7[1]][a7[2]]=a7[3]or nil A()task.spawn(function()pcall(function()j.CurrentData:Replicate(_4({70,97,118,111,114,105,116,101,100,67,111,115,109,101,116,105,99,115}))end)end)end;return end;return a6(I,...)end)end end;local bI pcall(function()bI=require(f:WaitForChild(_4({69,109,111,116,101,67,111,110,116,114,111,108,108,101,114}),10))if bI and bI.GetEmotes then local bJ=bI.GetEmotes bI.GetEmotes=function(I)local bK=bJ(I)for q,K in pairs(h.Cosmetics)do if K and(K.Type==_4({68,97,110,99,101})or K.Type==_4({69,109,111,116,101})or q:lower():find(_4({100,97,110,99,101}))or q:lower():find(_4({101,109,111,116,101})))then if not bK[q]then bK[q]={Name=q,Type=K.Type,ObjectID=K.ObjectID,Enum=K.Enum}end end end;return bK end end end)local bL=h.OwnsCosmetic h.OwnsCosmetic=function(I,J,q,C)if q:find(_4({77,73,83,83,73,78,71,95}))then return bL(I,J,q,C)end;local K=h.Cosmetics[q]if K and(K.Type==_4({87,114,97,112})or K.Type==_4({87,114,97,112,112,105,110,103})or q:lower():find(_4({119,114,97,112})))then return true end;return bL(I,J,q,C)end;local bM=j.Get j.Get=function(I,N)local O=bM(I,N)if N==_4({67,111,115,109,101,116,105,99,73,110,118,101,110,116,111,114,121})then local P={}if O then for Q,R in pairs(O)do local K=h.Cosmetics[Q]if K and(K.Type==_4({87,114,97,112})or K.Type==_4({87,114,97,112,112,105,110,103})or Q:lower():find(_4({119,114,97,112})))then P[Q]=R end end end;return setmetatable(P,{__index=function(S,Q)local K=h.Cosmetics[Q]if K and(K.Type==_4({87,114,97,112})or K.Type==_4({87,114,97,112,112,105,110,103})or Q:lower():find(_4({119,114,97,112})))then return true end;return nil end})end;if N==_4({70,97,118,111,114,105,116,101,100,67,111,115,109,101,116,105,99,115})then local T=O and table.clone(O)or{}for C,U in pairs(l)do T[C]=T[C]or{}for q,V in pairs(U)do local K=h.Cosmetics[q]if K and(K.Type==_4({87,114,97,112})or K.Type==_4({87,114,97,112,112,105,110,103})or q:lower():find(_4({119,114,97,112})))then T[C][q]=V end end end;return T end;return O end;if hookmetamethod then local _=b:FindFirstChild(_4({82,101,109,111,116,101,115}))local a0=_ and _:FindFirstChild(_4({68,97,116,97}))local a1=a0 and a0:FindFirstChild(_4({69,113,117,105,112,67,111,115,109,101,116,105,99}))local a2=a0 and a0:FindFirstChild(_4({70,97,118,111,114,105,116,101,67,111,115,109,101,116,105,99}))if a1 then local a6 a6=hookmetamethod(game,_4({95,95,110,97,109,101,99,97,108,108}),function(I,...)if getnamecallmethod()~=_4({70,105,114,101,83,101,114,118,101,114})then return a6(I,...)end;local a7={...}if I==a1 then local C,E,q,bb=a7[1],a7[2],a7[3],a7[4]or{}if E~=_4({87,114,97,112})and E~=_4({87,114,97,112,112,105,110,103})then return a6(I,...)end;if q and q~=_4({78,111,110,101})and q~=_4({})then local bc=j:Get(_4({67,111,115,109,101,116,105,99,73,110,118,101,110,116,111,114,121}))if bc and rawget(bc,q)then return a6(I,...)end end;k[C]=k[C]or{}if not q or q==_4({78,111,110,101})or q==_4({})then k[C][E]=nil if not next(k[C])then k[C]=nil end else local bd=p(q,E,{inverted=bb.IsInverted,favoritesOnly=bb.OnlyUseFavorites})if bd then k[C][E]=bd end end;task.defer(function()pcall(function()j.CurrentData:Replicate(_4({87,101,97,112,111,110,73,110,118,101,110,116,111,114,121}))end)task.wait(0.2)A()end)return end;if I==a2 then local K=h.Cosmetics[a7[2]]if K and(K.Type==_4({87,114,97,112})or K.Type==_4({87,114,97,112,112,105,110,103})or a7[2]:lower():find(_4({119,114,97,112})))then l[a7[1]]=l[a7[1]]or{}l[a7[1]][a7[2]]=a7[3]or nil A()task.spawn(function()pcall(function()j.CurrentData:Replicate(_4({70,97,118,111,114,105,116,101,100,67,111,115,109,101,116,105,99,115}))end)end)end;return end;return a6(I,...)end)end end;if be and be._CreateViewModel then local bN=be._CreateViewModel be._CreateViewModel=function(I,bg)local C=I.Name local bh=I.ClientFighter and I.ClientFighter.Player m=(bh==d)and C or nil if bh==d and k[C]and k[C].Wrap and bg then local bi,bj,bk=I:ToEnum(_4({68,97,116,97})),I:ToEnum(_4({87,114,97,112})),I:ToEnum(_4({78,97,109,101}))if bg[bi]then bg[bi][bj]=k[C].Wrap bg[bi][bk]=k[C].Wrap.Name elseif bg.Data then bg.Data.Wrap=k[C].Wrap bg.Data.Name=k[C].Wrap.Name end end;local bl=bN(I,bg)m=nil return bl end end;if bm then local bn=require(bm)if bn.GetWrap then local bO=bn.GetWrap bn.GetWrap=function(I)local C=I.ClientItem and I.ClientItem.Name local bh=I.ClientItem and I.ClientItem.ClientFighter and I.ClientItem.ClientFighter.Player if C and bh==d and k[C]and k[C].Wrap then return k[C].Wrap end;return bO(I)end end;local bP=bn.new bn.new=function(bp,bq)local bh=bq.ClientFighter and bq.ClientFighter.Player local C=m or bq.Name if bh==d and k[C]then local bs=require(b.Modules.ReplicatedClass)local bt=bs:ToEnum(_4({68,97,116,97}))bp[bt]=bp[bt]or{}local bu=k[C]if bu.Wrap then bp[bt][bs:ToEnum(_4({87,114,97,112}))]=bu.Wrap end end;local bv=bP(bp,bq)if bh==d and k[C]and k[C].Wrap and bv._UpdateWrap then bv:_UpdateWrap()task.delay(0.1,function()if not bv._destroyed then bv:_UpdateWrap()end end)end;return bv end end;pcall(function()local bQ=require(d.PlayerScripts.Modules.Pages.ViewProfile)if bQ and bQ.Fetch then local bR=bQ.Fetch bQ.Fetch=function(I,bS)n=bS return bR(I,bS)end end end)G()print(_4({226,156,133,32,229,133,168,231,154,174,232,134,178,232,167,163,233,142,150,229,183,178,232,188,137,229,133,165}))end
-local _121=false local _122=false local _123=0.3 local _124=2.0 local _125=1.0
-_23.Stepped:Connect(function()if not _121 then return end;local _126=_19.Character if _126 then local _127=_126:FindFirstChild(_4({72,117,109,97,110,111,105,100,82,111,111,116,80,97,114,116}))local _128=_126:FindFirstChildWhichIsA(_4({72,117,109,97,110,111,105,100}))if _127 and _128 then local _129=_128.MoveDirection if _129.Magnitude>0 then _127.CFrame=_127.CFrame+_129*_123 end end end end)
-_23.Heartbeat:Connect(function()_26.Gravity=196.2*_125 end)
-_21.JumpRequest:Connect(function()if _122 then local _130=_19.Character if _130 then local _131=_130:FindFirstChildWhichIsA(_4({72,117,109,97,110,111,105,100}))if _131 then _131.JumpPower=50*_124 _131:ChangeState(Enum.HumanoidStateType.Jumping)end end end end)
-local _132=_53.new()local _133=_87.new()local _134=Instance.new(_4({83,99,114,101,101,110,71,117,105}),_20)_134.Name=_28:GenerateGUID(false)_134.ResetOnSpawn=false local _135=Instance.new(_4({70,114,97,109,101}),_134)_135.Size=UDim2.new(0,550,0,330)_135.Position=UDim2.new(0.5,-275,0.5,-165)_135.BackgroundColor3=Color3.fromRGB(18,18,22)_135.BackgroundTransparency=0.1 _135.BorderSizePixel=0 _135.ClipsDescendants=true _135.Active=true Instance.new(_4({85,73,67,111,114,110,101,114}),_135).CornerRadius=UDim.new(0,14)local _136=Instance.new(_4({85,73,83,116,114,111,107,101}),_135)_136.Thickness=2 _136.ApplyStrokeMode=Enum.ApplyStrokeMode.Border local _137=0 _23.RenderStepped:Connect(function()_137=_137+0.005 if _137>1 then _137=0 end;_136.Color=Color3.fromHSV(_137,1,1)end)local _138=Instance.new(_4({70,114,97,109,101}),_135)_138.Size=UDim2.new(1,0,0,36)_138.BackgroundColor3=Color3.fromRGB(12,12,15)_138.BorderSizePixel=0 _138.Active=true Instance.new(_4({85,73,67,111,114,110,101,114}),_138).CornerRadius=UDim.new(0,14)local _139=Instance.new(_4({84,101,120,116,76,97,98,101,108}),_138)_139.Size=UDim2.new(1,-50,1,0)_139.Position=UDim2.new(0,15,0,0)_139.BackgroundTransparency=1 _139.Text=_4({230,152,159,232,188,157,232,188,148,229,138,169,104,117,98})_139.TextColor3=Color3.fromRGB(255,255,255)_139.Font=Enum.Font.GothamBold _139.TextSize=18 _139.TextXAlignment=Enum.TextXAlignment.Left local _140=Instance.new(_4({84,101,120,116,66,117,116,116,111,110}),_138)_140.Size=UDim2.new(0,30,0,30)_140.Position=UDim2.new(1,-35,0,3)_140.BackgroundColor3=Color3.fromRGB(255,70,70)_140.Text=_4({226,156,149})_140.TextColor3=Color3.fromRGB(255,255,255)_140.Font=Enum.Font.GothamBold _140.TextSize=20 _140.BorderSizePixel=0 Instance.new(_4({85,73,67,111,114,110,101,114}),_140).CornerRadius=UDim.new(0,8)local _141=Instance.new(_4({70,114,97,109,101}),_135)_141.Size=UDim2.new(0,90,1,-80)_141.Position=UDim2.new(0,15,0,46)_141.BackgroundTransparency=1 local _142={}local _143={}local _144={_4({228,184,187,233,160,129}),_4({230,148,187,230,147,138}),_4({232,166,150,166,186}),_4({231,142,169,229,174,182})}for i,name in ipairs(_144)do local btn=Instance.new(_4({84,101,120,116,66,117,116,116,111,110}),_141)btn.Size=UDim2.new(1,0,0,32)btn.Position=UDim2.new(0,0,0,(i-1)*(32+6))btn.BackgroundColor3=Color3.fromRGB(50,50,60)btn.Text=name btn.TextColor3=Color3.new(1,1,1)btn.Font=Enum.Font.GothamBold btn.TextSize=14 Instance.new(_4({85,73,67,111,114,110,101,114}),btn).CornerRadius=UDim.new(0,10)btn.MouseButton1Click:Connect(function()for j,b in ipairs(_142)do _22:Create(b,TweenInfo.new(0.25),{BackgroundColor3=Color3.fromRGB(50,50,60)}):Play()end;_22:Create(btn,TweenInfo.new(0.25),{BackgroundColor3=Color3.fromRGB(100,100,120)}):Play()for j,c in ipairs(_143)do c.Visible=(j==i)end end)_142[i]=btn end;local _145=Instance.new(_4({70,114,97,109,101}),_135)_145.Size=UDim2.new(1,-120,1,-55)_145.Position=UDim2.new(0,110,0,46)_145.BackgroundColor3=Color3.fromRGB(28,28,34)_145.BackgroundTransparency=0.3 _145.BorderSizePixel=0 Instance.new(_4({85,73,67,111,114,110,101,114}),_145).CornerRadius=UDim.new(0,10)for i=1,#_144 do local content=Instance.new(_4({70,114,97,109,101}),_145)content.Size=UDim2.new(1,0,1,0)content.BackgroundTransparency=1 content.Visible=(i==1)_143[i]=content end;_22:Create(_142[1],TweenInfo.new(0.01),{BackgroundColor3=Color3.fromRGB(100,100,120)}):Play()local _146=Instance.new(_4({70,114,97,109,101}),_135)_146.Size=UDim2.new(0,44,0,44)_146.Position=UDim2.new(0,25,1,-55)_146.BackgroundColor3=Color3.fromRGB(60,60,70)_146.BorderSizePixel=0 Instance.new(_4({85,73,67,111,114,110,101,114}),_146).CornerRadius=UDim.new(1,0)local _147=Instance.new(_4({84,101,120,116,76,97,98,101,108}),_146)_147.Size=UDim2.new(1,0,1,0)_147.BackgroundTransparency=1 _147.Text=_19.Name:sub(1,1)_147.TextColor3=Color3.new(1,1,1)_147.Font=Enum.Font.GothamBold _147.TextSize=22 local _148=Instance.new(_4({84,101,120,116,76,97,98,101,108}),_135)_148.Size=UDim2.new(0,180,0,22)_148.Position=UDim2.new(0,75,1,-55)_148.BackgroundTransparency=1 _148.Text=_19.Name _148.TextColor3=Color3.new(1,1,1)_148.Font=Enum.Font.GothamBold _148.TextSize=15 _148.TextXAlignment=Enum.TextXAlignment.Left local _149=Instance.new(_4({84,101,120,116,76,97,98,101,108}),_135)_149.Size=UDim2.new(0,180,0,18)_149.Position=UDim2.new(0,75,1,-30)_149.BackgroundTransparency=1 _149.Text=_4({73,68,58,32}).._19.UserId _149.TextColor3=Color3.new(0.7,0.7,0.7)_149.Font=Enum.Font.Gotham _149.TextSize=12 _149.TextXAlignment=Enum.TextXAlignment.Left local _150=65 local _151=Instance.new(_4({73,109,97,103,101,66,117,116,116,111,110}),_134)_151.Size=UDim2.new(0,_150,0,_150)_151.Position=UDim2.new(0.5,-_150/2,0.5,-_150/2)_151.BackgroundColor3=Color3.fromRGB(20,20,25)_151.BackgroundTransparency=0.8 _151.Image=_4({114,98,120,97,115,115,101,116,105,100,58,47,47,48})_151.Visible=false Instance.new(_4({85,73,67,111,114,110,101,114}),_151).CornerRadius=UDim.new(1,0)local _152=Instance.new(_4({85,73,83,116,114,111,107,101}),_151)_152.Thickness=3 local _153=0 _23.RenderStepped:Connect(function()_153=_153+0.01 if _153>1 then _153=0 end;_152.Color=Color3.fromHSV(_153,1,1)end)local _154=Instance.new(_4({84,101,120,116,76,97,98,101,108}),_151)_154.Size=UDim2.new(1,0,1,0)_154.BackgroundTransparency=1 _154.Text=_4({230,152,159,232,188,157})_154.TextColor3=Color3.new(1,1,1)_154.Font=Enum.Font.GothamBold _154.TextSize=16 local function _155()_135.Visible=true _151.Visible=false end;local function _156()_135.Visible=false _151.Visible=true end;_140.Activated:Connect(_156)_151.Activated:Connect(_155)local function _157(_158,_159)local _160,_161,_162;_158.InputBegan:Connect(function(input)if input.UserInputType==Enum.UserInputType.Touch or input.UserInputType==Enum.UserInputType.MouseButton1 then _160=true _161=input.Position _162=_159.Position input.Changed:Connect(function()if input.UserInputState==Enum.UserInputState.End then _160=false end end)end end)_21.InputChanged:Connect(function(input)if _160 and(input.UserInputType==Enum.UserInputType.Touch or input.UserInputType==Enum.UserInputType.MouseMovement)then local delta=input.Position-_161 _159.Position=UDim2.new(_162.X.Scale,_162.X.Offset+delta.X,_162.Y.Scale,_162.Y.Offset+delta.Y)end end)end;_157(_138,_135)_157(_151,_151)local _163=_143[2]local _164=Instance.new(_4({83,99,114,111,108,108,105,110,103,70,114,97,109,101}),_163)_164.Size=UDim2.new(1,0,1,0)_164.BackgroundTransparency=1 _164.BorderSizePixel=0 _164.ScrollBarThickness=3 _164.CanvasSize=UDim2.new(0,0,0,0)local _165=Instance.new(_4({85,73,76,105,115,116,76,97,121,111,117,116}),_164)_165.SortOrder=Enum.SortOrder.LayoutOrder _165.Padding=UDim.new(0,4)local function _166(parent,name,callback,isSubControl)local btn=Instance.new(_4({84,101,120,116,66,117,116,116,111,110}),parent)btn.Size=UDim2.new(1,-6,0,30)btn.BackgroundColor3=Color3.fromRGB(50,50,60)btn.Text=name.._4({32,79,70,70})btn.TextColor3=Color3.new(1,1,1)btn.Font=Enum.Font.GothamBold btn.TextSize=13 Instance.new(_4({85,73,67,111,114,110,101,114}),btn).CornerRadius=UDim.new(0,8)local state=false btn.Activated:Connect(function()state=not state btn.Text=name..(state and _4({32,79,78})or _4({32,79,70,70}))btn.BackgroundColor3=state and Color3.fromRGB(0,170,0)or Color3.fromRGB(50,50,60)callback(state)end)if isSubControl then btn.Visible=false end;return btn end;local _167=nil local function _168(parent,name,minV,maxV,defV,callback,isSubControl)local c=Instance.new(_4({70,114,97,109,101}),parent)c.Size=UDim2.new(1,-6,0,40)c.BackgroundColor3=Color3.fromRGB(40,40,48)Instance.new(_4({85,73,67,111,114,110,101,114}),c).CornerRadius=UDim.new(0,8)local l=Instance.new(_4({84,101,120,116,76,97,98,101,108}),c)l.Size=UDim2.new(1,0,0,18)l.Position=UDim2.new(0,6,0,2)l.BackgroundTransparency=1 l.Text=name.._4({58,32})..tostring(defV)l.TextColor3=Color3.new(1,1,1)l.Font=Enum.Font.Gotham l.TextSize=12 local bar=Instance.new(_4({70,114,97,109,101}),c)bar.Size=UDim2.new(1,-16,0,6)bar.Position=UDim2.new(0,8,0,26)bar.BackgroundColor3=Color3.fromRGB(60,60,70)Instance.new(_4({85,73,67,111,114,110,101,114}),bar).CornerRadius=UDim.new(0,3)local fill=Instance.new(_4({70,114,97,109,101}),bar)fill.Size=UDim2.new((defV-minV)/(maxV-minV),0,1,0)fill.BackgroundColor3=Color3.fromHSV(0.58,1,1)Instance.new(_4({85,73,67,111,114,110,101,114}),fill).CornerRadius=UDim.new(0,3)local function update(pos)local x=math.clamp((pos.X-bar.AbsolutePosition.X)/bar.AbsoluteSize.X,0,1)fill.Size=UDim2.new(x,0,1,0)local val=math.floor(minV+(maxV-minV)*x)l.Text=name.._4({58,32})..tostring(val)callback(val)end;bar.InputBegan:Connect(function(input)if input.UserInputType==Enum.UserInputType.Touch then _167=update update(input.Position)end end)if isSubControl then c.Visible=false end;return c end;_21.TouchMoved:Connect(function(touch)if _167 then _167(touch.Position)end end)_21.InputEnded:Connect(function(input)if input.UserInputType==Enum.UserInputType.Touch then _167=nil end end)local function _169(parent,panel,name,options,callback,isSubControl)local mainBtn=Instance.new(_4({84,101,120,116,66,117,116,116,111,110}),parent)mainBtn.Size=UDim2.new(1,-6,0,30)mainBtn.BackgroundColor3=Color3.fromRGB(50,50,60)mainBtn.Text=name.._4({32,240,159,148,189})mainBtn.TextColor3=Color3.new(1,1,1)mainBtn.Font=Enum.Font.GothamBold mainBtn.TextSize=13 Instance.new(_4({85,73,67,111,114,110,101,114}),mainBtn).CornerRadius=UDim.new(0,8)local popup=Instance.new(_4({70,114,97,109,101}),panel)popup.Size=UDim2.new(0,0,0,0)popup.BackgroundColor3=Color3.fromRGB(35,35,40)popup.BorderSizePixel=0 popup.ClipsDescendants=true popup.Visible=false popup.ZIndex=10 Instance.new(_4({85,73,67,111,114,110,101,114}),popup).CornerRadius=UDim.new(0,6)local expanded=false for i,opt in ipairs(options)do local optBtn=Instance.new(_4({84,101,120,116,66,117,116,116,111,110}),popup)optBtn.Size=UDim2.new(1,-8,0,28)optBtn.Position=UDim2.new(0,4,0,4+(i-1)*30)optBtn.BackgroundColor3=Color3.fromRGB(50,50,60)optBtn.Text=(i==1 and _4({49,46,32})or _4({50,46,32}))..opt optBtn.TextColor3=Color3.new(1,1,1)optBtn.Font=Enum.Font.Gotham optBtn.TextSize=12 optBtn.ZIndex=11 Instance.new(_4({85,73,67,111,114,110,101,114}),optBtn).CornerRadius=UDim.new(0,4)optBtn.Activated:Connect(function()mainBtn.Text=opt.._4({32,240,159,148,189})callback(opt)popup.Visible=false expanded=false end)end;local function updatePopupPosition()local absPos=mainBtn.AbsolutePosition local absSize=mainBtn.AbsoluteSize local panelAbs=panel.AbsolutePosition popup.Position=UDim2.new(0,absPos.X-panelAbs.X+8,0,absPos.Y-panelAbs.Y+absSize.Y+2)popup.Size=UDim2.new(0,absSize.X-16,0,#options*30+8)end;mainBtn.Activated:Connect(function()expanded=not expanded if expanded then updatePopupPosition()popup.Visible=true mainBtn.Text=name.._4({32,226,172,134,239,184,143})else popup.Visible=false mainBtn.Text=name.._4({32,240,159,148,189})end end)if isSubControl then mainBtn.Visible=false end;return{MainBtn=mainBtn,Popup=popup}end;local function _170(parent)local line=Instance.new(_4({70,114,97,109,101}),parent)line.Size=UDim2.new(1,-6,0,1)line.BackgroundColor3=Color3.fromRGB(80,80,90)line.BorderSizePixel=0 return line end;local _171={}_166(_164,_4({233,187,145,231,137,134}),function(b)if b then _29:Enable()else _29:Disable()end end)_166(_164,_4({233,128,159,229,189,136,231,132,161,229,190,140,229,186,167}),function(b)if b then _30:Enable()else _30:Disable()end end)_170(_164)_166(_164,_4({233,157,156,233,187,152,231,158,132,230,186,150}),function(b)if b then _31:Enable()else _31:Disable()end;for _,ctrl in ipairs(_171)do ctrl.Visible=b end;_164.CanvasSize=UDim2.new(0,0,0,_165.AbsoluteContentSize.Y+10)end)local _172=_166(_164,_4({233,154,138,228,188,141,230,170,162,230,159,165}),function(b)_31.TeamCheck=b end,true)table.insert(_171,_172)local _173=_169(_164,_135,_4({233,131,168,228,189,141}),{_4({72,101,97,100}),_4({72,117,109,97,110,111,105,100,82,111,111,116,80,97,114,116})},function(v)_31.AimPart=v end,true)table.insert(_171,_173.MainBtn)local _174=_166(_164,_4({231,175,132,229,156,141,233,153,144,229,136,182}),function(b)_31.LimitRange=b if _175 then _175.Visible=b end;_164.CanvasSize=UDim2.new(0,0,0,_165.AbsoluteContentSize.Y+10)end,true)table.insert(_171,_174)local _175=_168(_164,_4({230,156,128,229,164,167,232,183,157,233,155,162}),50,800,300,function(v)_31.MaxDistance=v end,true)_175.Visible=false table.insert(_171,_175)_166(_164,_4({231,169,191,231,137,134,32,68,101,115,121,110,99}),function(b)if b then _132:Start()else _132:Stop()end end)_166(_164,_4({231,169,191,231,137,134,32,86,50}),function(b)if b then _133:Start()else _133:Stop()end end)_164.CanvasSize=UDim2.new(0,0,0,_165.AbsoluteContentSize.Y+10)local _176=_143[3]local _177=0 local _178=function(name,callback)local btn=Instance.new(_4({84,101,120,116,66,117,116,116,111,110}),_176)btn.Size=UDim2.new(1,-20,0,28)btn.Position=UDim2.new(0,10,0,_177)btn.BackgroundColor3=Color3.fromRGB(50,50,60)btn.Text=name.._4({32,79,70,70})btn.TextColor3=Color3.new(1,1,1)btn.Font=Enum.Font.GothamBold btn.TextSize=13 Instance.new(_4({85,73,67,111,114,110,101,114}),btn).CornerRadius=UDim.new(0,8)local state=false btn.Activated:Connect(function()state=not state btn.Text=name..(state and _4({32,79,78})or _4({32,79,70,70}))btn.BackgroundColor3=state and Color3.fromRGB(0,170,0)or Color3.fromRGB(50,50,60)callback(state)end)_177=_177+34 return btn end;_178(_4({230,152,159,231,169,186}),function(b)if b then _51:Enable()else _51:Disable()end end)local _179=Instance.new(_4({84,101,120,116,66,117,116,116,111,110}),_176)_179.Size=UDim2.new(1,-20,0,28)_179.Position=UDim2.new(0,10,0,_177)_179.BackgroundColor3=Color3.fromRGB(50,50,60)_179.Text=_4({229,133,168,231,154,174,232,167,163,233,142,150,32,40,233,187,158,230,147,138,229,159,183,232,161,140,41})_179.TextColor3=Color3.new(1,1,1)_179.Font=Enum.Font.GothamBold _179.TextSize=13 Instance.new(_4({85,73,67,111,114,110,101,114}),_179).CornerRadius=UDim.new(0,8)_179.Activated:Connect(function()_179.Text=_4({229,159,183,232,161,140,228,184,173,46,46,46})_179.BackgroundColor3=Color3.fromRGB(255,170,0)task.spawn(function()local success,err=pcall(_120)if success then _179.Text=_4({226,156,133,32,229,183,178,232,167,163,233,142,150})_179.BackgroundColor3=Color3.fromRGB(0,200,100)else _179.Text=_4({226,157,140,32,229,164,177,230,149,151})_179.BackgroundColor3=Color3.fromRGB(200,0,0)warn(err)end;task.wait(2)_179.Text=_4({229,133,168,231,154,174,232,167,163,233,142,150,32,40,233,187,158,230,147,138,229,159,183,232,161,140,41})_179.BackgroundColor3=Color3.fromRGB(50,50,60)end)end)local _180=_143[4]local _181=0 local _182=function(name,callback)local btn=Instance.new(_4({84,101,120,116,66,117,116,116,111,110}),_180)btn.Size=UDim2.new(1,-20,0,28)btn.Position=UDim2.new(0,10,0,_181)btn.BackgroundColor3=Color3.fromRGB(50,50,60)btn.Text=name.._4({32,79,70,70})btn.TextColor3=Color3.new(1,1,1)btn.Font=Enum.Font.GothamBold btn.TextSize=13 Instance.new(_4({85,73,67,111,114,110,101,114}),btn).CornerRadius=UDim.new(0,8)local state=false btn.Activated:Connect(function()state=not state btn.Text=name..(state and _4({32,79,78})or _4({32,79,70,70}))btn.BackgroundColor3=state and Color3.fromRGB(0,170,0)or Color3.fromRGB(50,50,60)callback(state)end)_181=_181+34 return btn end;local _183=function(name,minV,maxV,defV,callback)local c=Instance.new(_4({70,114,97,109,101}),_180)c.Size=UDim2.new(1,-20,0,38)c.Position=UDim2.new(0,10,0,_181)c.BackgroundColor3=Color3.fromRGB(40,40,48)Instance.new(_4({85,73,67,111,114,110,101,114}),c).CornerRadius=UDim.new(0,8)local l=Instance.new(_4({84,101,120,116,76,97,98,101,108}),c)l.Size=UDim2.new(1,0,0,16)l.Position=UDim2.new(0,6,0,0)l.BackgroundTransparency=1 l.Text=name.._4({58,32})..string.format(_4({37,46,49,102}),defV)l.TextColor3=Color3.new(1,1,1)l.Font=Enum.Font.Gotham l.TextSize=12 local bar=Instance.new(_4({70,114,97,109,101}),c)bar.Size=UDim2.new(1,-16,0,6)bar.Position=UDim2.new(0,8,0,24)bar.BackgroundColor3=Color3.fromRGB(60,60,70)Instance.new(_4({85,73,67,111,114,110,101,114}),bar).CornerRadius=UDim.new(0,3)local fill=Instance.new(_4({70,114,97,109,101}),bar)fill.Size=UDim2.new((defV-minV)/(maxV-minV),0,1,0)fill.BackgroundColor3=Color3.fromHSV(0.58,1,1)Instance.new(_4({85,73,67,111,114,110,101,114}),fill).CornerRadius=UDim.new(0,3)local function update(pos)local x=math.clamp((pos.X-bar.AbsolutePosition.X)/bar.AbsoluteSize.X,0,1)fill.Size=UDim2.new(x,0,1,0)local val=minV+(maxV-minV)*x l.Text=name.._4({58,32})..string.format(_4({37,46,49,102}),val)callback(val)end;bar.InputBegan:Connect(function(input)if input.UserInputType==Enum.UserInputType.Touch then _167=update update(input.Position)end end)_181=_181+44 return c end;_183(_4({233,128,159,229,186,166,229,128,141,231,142,135}),0,0.7,0.3,function(v)_123=v end)_182(_4({229,149,159,231,148,168,229,138,160,233,128,159}),function(b)_121=b end)_183(_4({232,183,179,232,186,141,229,128,141,231,142,135}),1,10,2,function(v)_124=v end)_183(_4({233,135,141,229,138,155,229,128,141,231,142,135}),0.1,3,1,function(v)_125=v end)_182(_4({231,132,161,233,153,144,232,183,179,232,186,141}),function(b)_122=b end)print(_4({230,152,159,232,188,157,232,188,148,229,138,169,104,117,98,32,229,174,140,230,149,180,228,191,174,229,190,169,231,137,136,229,183,178,232,188,137,229,133,165}))
+-- 星輝輔助hub 完整修復版（靜默增強 + 雙穿牆 + 全皮）
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+local CoreGui = game:GetService("CoreGui")
+local UserInputService = game:GetService("UserInputService")
+local TweenService = game:GetService("TweenService")
+local RunService = game:GetService("RunService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Lighting = game:GetService("Lighting")
+local Workspace = game:GetService("Workspace")
+local Camera = Workspace.CurrentCamera
+local HttpService = game:GetService("HttpService")
+
+-- ===== 防封 =====
+pcall(function()
+    if syn and syn.protect_gui then syn.protect_gui(CoreGui) end
+    if setfflag then setfflag("AbuseReportScreenshot","False") setfflag("AbuseReportScreenshotPercentage","0") end
+end)
+
+-- ===== 黑牆 =====
+local BlackWall = {Enabled=false,Connection=nil,TARGET_NAMES={"Part","Truss","Floor","Wall"},DARK_COLOR=Color3.new(0.15,0.15,0.15),Enable=function(self)if self.Connection then return end self.Connection=RunService.RenderStepped:Connect(function()pcall(function()for _,part in ipairs(workspace:GetDescendants())do if part:IsA("BasePart")then for _,name in ipairs(self.TARGET_NAMES)do if part.Name==name then part.Color=self.DARK_COLOR break end end end end end)end)end,Disable=function(self)if self.Connection then self.Connection:Disconnect()self.Connection=nil end end}
+
+-- ===== 速彈無後座 =====
+local SpeedNoRecoil = {Enabled=false,HookSetup=false,Enable=function(self)if self.Enabled then return end self.Enabled=true if not self.HookSetup then self:_setup()self.HookSetup=true end end,Disable=function(self)self.Enabled=false end,_setup=function(self)pcall(function()local PS=LocalPlayer:WaitForChild("PlayerScripts")local CI=PS:WaitForChild("Modules"):WaitForChild("ClientReplicatedClasses"):WaitForChild("ClientFighter"):WaitForChild("ClientItem")local m=require(CI)local orig=m.Input m.Input=function(...)local args={...}if self.Enabled and args[1]and args[1].Info then args[1].Info.ShootRecoil=0 args[1].Info.ShootSpread=0 args[1].Info.ProjectileSpeed=99999999 args[1].Info.ShootCooldown=0 args[1].Info.QuickShotCooldown=0 end return orig(...)end end)end}
+
+-- ===== 靜默瞄準（底層Hook增強版）=====
+local SilentAim = {
+    Enabled = false,
+    TeamCheck = false,
+    AimPart = "Head",
+    LimitRange = false,
+    MaxDistance = 300,
+    CurrentTarget = nil,
+    Hooked = false
+}
+
+local function getClosestEnemy()
+    local myChar = LocalPlayer.Character
+    if not myChar then return nil end
+    local myRoot = myChar:FindFirstChild("HumanoidRootPart")
+    if not myRoot then return nil end
+    local myPos = myRoot.Position
+    local best, bestDist = nil, math.huge
+    for _, plr in ipairs(Players:GetPlayers()) do
+        if plr == LocalPlayer then continue end
+        if SilentAim.TeamCheck then
+            if LocalPlayer.Team and plr.Team == LocalPlayer.Team then continue end
+            local team1 = LocalPlayer:GetAttribute("TeamID")
+            local team2 = plr:GetAttribute("TeamID")
+            if team1 and team2 and team1 == team2 then continue end
+        end
+        local char = plr.Character
+        if not char then continue end
+        local part = char:FindFirstChild(SilentAim.AimPart)
+        local hum = char:FindFirstChildWhichIsA("Humanoid")
+        if not (part and hum and hum.Health > 0) then continue end
+        local dist = (part.Position - myPos).Magnitude
+        if SilentAim.LimitRange and dist > SilentAim.MaxDistance then continue end
+        if dist < bestDist then bestDist = dist best = part end
+    end
+    return best
+end
+
+function SilentAim:Enable()
+    if self.Enabled then return end
+    self.Enabled = true
+    if not self.Hooked then
+        local oldNamecall
+        oldNamecall = hookmetamethod(game, "__namecall", function(self, ...)
+            local method = getnamecallmethod()
+            local args = {...}
+            if SilentAim.Enabled and SilentAim.CurrentTarget and self == Workspace and (method == "Raycast" or method == "raycast") then
+                local origin = args[1]
+                local direction = args[2]
+                if typeof(origin) == "Vector3" and typeof(direction) == "Vector3" and direction.Magnitude > 50 then
+                    args[2] = (SilentAim.CurrentTarget.Position - origin).Unit * direction.Magnitude
+                    return oldNamecall(self, unpack(args))
+                end
+            end
+            return oldNamecall(self, ...)
+        end)
+        self.Hooked = true
+    end
+    RunService.RenderStepped:Connect(function()
+        if SilentAim.Enabled then
+            SilentAim.CurrentTarget = getClosestEnemy()
+        else
+            SilentAim.CurrentTarget = nil
+        end
+    end)
+end
+
+function SilentAim:Disable()
+    self.Enabled = false
+    self.CurrentTarget = nil
+end
+
+-- ===== 星空 =====
+local OfficialSky = {Enabled=false,SkyInstance=nil,OfficialIds={Ft="2570432998",Bk="2570432999",Lf="2570433000",Rt="2570432997",Up="2570432996",Dn="2570433005"},Enable=function(self)if self.Enabled then return end self.Enabled=true self:clearSky()local sky=Instance.new("Sky",Lighting)sky.SkyboxFt="rbxassetid://"..self.OfficialIds.Ft sky.SkyboxBk="rbxassetid://"..self.OfficialIds.Bk sky.SkyboxLf="rbxassetid://"..self.OfficialIds.Lf sky.SkyboxRt="rbxassetid://"..self.OfficialIds.Rt sky.SkyboxUp="rbxassetid://"..self.OfficialIds.Up sky.SkyboxDn="rbxassetid://"..self.OfficialIds.Dn self.SkyInstance=sky end,Disable=function(self)self.Enabled=false self:clearSky()end,clearSky=function(self)for _,obj in ipairs(Lighting:GetChildren())do if obj:IsA("Sky")then obj:Destroy()end end self.SkyInstance=nil end}
+
+-- ===== 穿牆 Desync (原版) =====
+local WallbangModule = {} WallbangModule.__index = WallbangModule
+function WallbangModule.new() local self = setmetatable({}, WallbangModule) self.Active=false self.Target=nil self.Desyncing=false self.HeartbeatConn=nil self.DesyncConn=nil self.RestoreTask=nil self.OldStartShooting=nil return self end
+function WallbangModule:Start() if self.Active then return end self.Active=true local GunModule=LocalPlayer.PlayerScripts:FindFirstChild("Modules") and LocalPlayer.PlayerScripts.Modules:FindFirstChild("ItemTypes") and LocalPlayer.PlayerScripts.Modules.ItemTypes:FindFirstChild("Gun") if not GunModule then warn("找不到 Gun 模組") self.Active=false return end local Gun=require(GunModule) local Utility=require(ReplicatedStorage:FindFirstChild("Modules") and ReplicatedStorage.Modules:FindFirstChild("Utility")) self.HeartbeatConn=RunService.Heartbeat:Connect(function() if not self.Active then return end local mousePos=UserInputService:GetMouseLocation() local bestTarget=nil local bestDist=math.huge for _,plr in ipairs(Players:GetPlayers()) do if plr==LocalPlayer then continue end if plr:GetAttribute("TeamID")==LocalPlayer:GetAttribute("TeamID") then continue end local char=plr.Character if not char then continue end local root=char:FindFirstChild("HumanoidRootPart") local head=char:FindFirstChild("Head") local humanoid=char:FindFirstChildWhichIsA("Humanoid") if not (root and head and humanoid and humanoid.Health>0) then continue end local screenPos,onScreen=Camera:WorldToViewportPoint(root.Position) if not onScreen then continue end local dist=(Vector2.new(screenPos.X,screenPos.Y)-mousePos).Magnitude if dist<bestDist then bestDist=dist bestTarget=plr end end self.Target=bestTarget end) self.OldStartShooting=Gun.StartShooting Gun.StartShooting=function(gun,...) local results={self.OldStartShooting(gun,...)} if not self.Active then return unpack(results) end if not gun.ClientFighter or not gun.ClientFighter.IsLocalPlayer then return unpack(results) end local data=results[3] if not data or typeof(data)~="table" then return unpack(results) end results[4]=true local target=self.Target if not target or not target.Character then return unpack(results) end if not self.Desyncing or self.CurrentDesyncTarget~=target then self:StartDesync(target) task.wait(0.1) end local head=target.Character:FindFirstChild("Head") if not head then return unpack(results) end local headPos=head.Position local headCFrame=head.CFrame local fakeOrigin=headPos-Vector3.new(0,5,0) local lookDir=CFrame.lookAt(fakeOrigin,headPos) local randomOffset=headCFrame:ToObjectSpace(CFrame.new(headPos+Vector3.new(math.random(),math.random(),math.random()))) data[utf8.char(0)]=Utility:EncodeCFrame(CFrame.new(fakeOrigin,headPos)*CFrame.Angles(lookDir:ToOrientation())) data[utf8.char(1)]=Utility:EncodeCFrame(CFrame.new(headPos)*CFrame.Angles(lookDir:ToOrientation())) data[utf8.char(2)]=head data[utf8.char(3)]=Utility:EncodeCFrame(randomOffset) if self.RestoreTask then task.cancel(self.RestoreTask) end self.RestoreTask=task.delay(0.15,function() self:StopDesync() end) return unpack(results) end end
+function WallbangModule:StartDesync(targetPlayer) self:StopDesync() self.Desyncing=true self.CurrentDesyncTarget=targetPlayer local myChar=LocalPlayer.Character if not myChar then return end local myRoot=myChar:FindFirstChild("HumanoidRootPart") if not myRoot then return end self.DesyncConn=RunService.Heartbeat:Connect(function() if not self.Desyncing then return end local targetRoot=targetPlayer.Character and targetPlayer.Character:FindFirstChild("HumanoidRootPart") if not targetRoot then self:StopDesync() return end local oldCFrame=myRoot.CFrame local oldVel=myRoot.Velocity local oldRotVel=myRoot.RotVelocity myRoot.CFrame=targetRoot.CFrame*CFrame.new(0,-5,0) RunService:BindToRenderStep("WallbangRestore",101,function() pcall(function() myRoot.CFrame=oldCFrame myRoot.Velocity=oldVel myRoot.RotVelocity=oldRotVel end) RunService:UnbindFromRenderStep("WallbangRestore") end) end) end
+function WallbangModule:StopDesync() self.Desyncing=false self.CurrentDesyncTarget=nil if self.DesyncConn then self.DesyncConn:Disconnect() self.DesyncConn=nil end if self.RestoreTask then task.cancel(self.RestoreTask) self.RestoreTask=nil end end
+function WallbangModule:Stop() self.Active=false self:StopDesync() if self.HeartbeatConn then self.HeartbeatConn:Disconnect() self.HeartbeatConn=nil end if self.OldStartShooting then local GunModule=LocalPlayer.PlayerScripts:FindFirstChild("Modules") and LocalPlayer.PlayerScripts.Modules:FindFirstChild("ItemTypes") and LocalPlayer.PlayerScripts.Modules.ItemTypes:FindFirstChild("Gun") if GunModule then local Gun=require(GunModule) Gun.StartShooting=self.OldStartShooting end self.OldStartShooting=nil end end
+
+-- ===== 穿牆 V2 (子彈生成點篡改) =====
+local WallbangV2 = {} WallbangV2.__index = WallbangV2
+function WallbangV2.new() local self = setmetatable({}, WallbangV2) self.__active=true self.__target=nil self.__desync=false self.__conn1=nil self.__conn2=nil self.__task1=nil self.__oldfunc=nil return self end
+function WallbangV2:Start() if self.__conn1 then return end local GunModule=LocalPlayer.PlayerScripts:FindFirstChild("Modules") and LocalPlayer.PlayerScripts.Modules:FindFirstChild("ItemTypes") and LocalPlayer.PlayerScripts.Modules.ItemTypes:FindFirstChild("Gun") if not GunModule then warn("找不到 Gun 模組") return end local Gun=require(GunModule) local Utility=require(ReplicatedStorage:FindFirstChild("Modules"):FindFirstChild("Utility")) self.__conn1=RunService.Heartbeat:Connect(function() if not self.__active then return end local mousePos=UserInputService:GetMouseLocation() local best,bestDist=nil,math.huge for _,plr in ipairs(Players:GetPlayers()) do if plr==LocalPlayer then continue end if plr:GetAttribute("TeamID")==LocalPlayer:GetAttribute("TeamID") then continue end local char=plr.Character if not char then continue end local root=char:FindFirstChild("HumanoidRootPart") local head=char:FindFirstChild("Head") local hum=char:FindFirstChildWhichIsA("Humanoid") if not(root and head and hum and hum.Health>0)then continue end local sp,onScreen=Camera:WorldToViewportPoint(root.Position) if not onScreen then continue end local dist=(Vector2.new(sp.X,sp.Y)-mousePos).Magnitude if dist<bestDist then bestDist=dist best=plr end end self.__target=best end) self.__oldfunc=Gun.StartShooting Gun.StartShooting=function(gun,...) local results={self.__oldfunc(gun,...)} if not self.__active then return unpack(results) end if not(gun.ClientFighter and gun.ClientFighter.IsLocalPlayer)then return unpack(results) end local data=results[3] if not data or typeof(data)~="table"then return unpack(results) end results[4]=true local target=self.__target if not target or not target.Character then return unpack(results) end if not self.__desync or self.__curr~=target then self:DesyncStart(target) task.wait(0.01) end local head=target.Character:FindFirstChild("Head") if not head then return unpack(results) end local headPos=head.Position local headCF=head.CFrame local fakeOrigin=headPos-Vector3.new(0,5,0) local lookDir=CFrame.lookAt(fakeOrigin,headPos) local randOff=headCF:ToObjectSpace(CFrame.new(headPos+Vector3.new(math.random(),math.random(),math.random()))) data[utf8.char(0)]=Utility:EncodeCFrame(CFrame.new(fakeOrigin,headPos)*CFrame.Angles(lookDir:ToOrientation())) data[utf8.char(1)]=Utility:EncodeCFrame(CFrame.new(headPos)*CFrame.Angles(lookDir:ToOrientation())) data[utf8.char(2)]=head data[utf8.char(3)]=Utility:EncodeCFrame(randOff) if self.__task1 then task.cancel(self.__task1) end self.__task1=task.delay(0.15,function()self:DesyncStop()end) return unpack(results) end end
+function WallbangV2:DesyncStart(targetPlayer) self:DesyncStop() self.__desync=true self.__curr=targetPlayer local myRoot=LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") if not myRoot then return end self.__conn2=RunService.Heartbeat:Connect(function() if not self.__desync then return end local targetRoot=targetPlayer.Character and targetPlayer.Character:FindFirstChild("HumanoidRootPart") if not targetRoot then self:DesyncStop()return end local oldCF=myRoot.CFrame local oldVel=myRoot.Velocity local oldRot=myRoot.RotVelocity myRoot.CFrame=targetRoot.CFrame*CFrame.new(0,-5,0) RunService:BindToRenderStep("WallV2Restore",101,function() pcall(function()myRoot.CFrame=oldCF myRoot.Velocity=oldVel myRoot.RotVelocity=oldRot end) RunService:UnbindFromRenderStep("WallV2Restore") end) end) end
+function WallbangV2:DesyncStop() self.__desync=false self.__curr=nil if self.__conn2 then self.__conn2:Disconnect()self.__conn2=nil end end
+function WallbangV2:Stop() self.__active=false self:DesyncStop() if self.__conn1 then self.__conn1:Disconnect()self.__conn1=nil end if self.__oldfunc then local GunModule=LocalPlayer.PlayerScripts:FindFirstChild("Modules")and LocalPlayer.PlayerScripts.Modules:FindFirstChild("ItemTypes")and LocalPlayer.PlayerScripts.Modules.ItemTypes:FindFirstChild("Gun") if GunModule then local Gun=require(GunModule) Gun.StartShooting=self.__oldfunc end self.__oldfunc=nil end end
+
+-- ===== 全皮解鎖 =====
+local function ExecuteUnlockAll()
+local a=game:GetService("Players")local b=game:GetService("ReplicatedStorage")local c=game:GetService("HttpService")local d=a.LocalPlayer local e=d.PlayerScripts local f=e.Controllers local g=require(b.Modules:WaitForChild("EnumLibrary",10))if g then g:WaitForEnumBuilder()end local h=require(b.Modules:WaitForChild("CosmeticLibrary",10))local i=require(b.Modules:WaitForChild("ItemLibrary",10))local j=require(f:WaitForChild("PlayerDataController",10))local k,l={},{}local m,n=nil,nil local o=nil local function p(q,r,s)local t=h.Cosmetics[q]if not t then return nil end local u={}for v,w in pairs(t)do u[v]=w end u.Name=q u.Type=u.Type or r u.Seed=u.Seed or math.random(1,1000000)if g then local x,y=pcall(g.ToEnum,g,q)if x and y then u.Enum,u.ObjectID=y,u.ObjectID or y end end if s then if s.inverted~=nil then u.Inverted=s.inverted end if s.favoritesOnly~=nil then u.OnlyUseFavorites=s.favoritesOnly end end return u end local z="unlockall/config.json"local function A()if not writefile then return end pcall(function()local B={equipped={},favorites=l}for C,D in pairs(k)do B.equipped[C]={}for E,F in pairs(D)do if F and F.Name then B.equipped[C][E]={name=F.Name,seed=F.Seed,inverted=F.Inverted}end end end makefolder("unlockall")writefile(z,c:JSONEncode(B))end)end local function G()if not readfile or not isfile or not isfile(z)then return end pcall(function()local B=c:JSONDecode(readfile(z))if B.equipped then for C,D in pairs(B.equipped)do k[C]={}for E,F in pairs(D)do local H=p(F.name,E,{inverted=F.inverted})if H then H.Seed=F.seed k[C][E]=H end end end end l=B.favorites or{}end)end h.OwnsCosmeticNormally=function(I,J,q,C)local K=h.Cosmetics[q]if K and K.Type=="Skin"then return true end return false end h.OwnsCosmeticUniversally=function(I,J,q,C)local K=h.Cosmetics[q]if K and K.Type=="Skin"then return true end return false end h.OwnsCosmeticForWeapon=function(I,J,q,C)local K=h.Cosmetics[q]if K and K.Type=="Skin"then return true end return false end local L=h.OwnsCosmetic h.OwnsCosmetic=function(I,J,q,C)if q:find("MISSING_")then return L(I,J,q,C)end local K=h.Cosmetics[q]if K and K.Type=="Skin"then return true end return L(I,J,q,C)end local M=j.Get j.Get=function(I,N)local O=M(I,N)if N=="CosmeticInventory"then local P={}if O then for Q,R in pairs(O)do local K=h.Cosmetics[Q]if K and K.Type=="Skin"then P[Q]=R end end end return setmetatable(P,{__index=function(S,Q)local K=h.Cosmetics[Q]if K and K.Type=="Skin"then return true end return nil end})end if N=="FavoritedCosmetics"then local T=O and table.clone(O)or{}for C,U in pairs(l)do T[C]=T[C]or{}for q,V in pairs(U)do local K=h.Cosmetics[q]if K and K.Type=="Skin"then T[C][q]=V end end end return T end return O end local W=j.GetWeaponData j.GetWeaponData=function(I,C)local X=W(I,C)if not X then return nil end local Y={}for v,w in pairs(X)do Y[v]=w end Y.Name=C if k[C]then for E,F in pairs(k[C])do if E=="Skin"then Y[E]=F end end end return Y end local Z pcall(function()Z=require(f:WaitForChild("FighterController",10))end)if hookmetamethod then local _=b:FindFirstChild("Remotes")local a0=_ and _:FindFirstChild("Data")local a1=a0 and a0:FindFirstChild("EquipCosmetic")local a2=a0 and a0:FindFirstChild("FavoriteCosmetic")local a3=_ and _:FindFirstChild("Replication")local a4=a3 and a3:FindFirstChild("Fighter")local a5=a4 and a4:FindFirstChild("UseItem")if a1 then local a6 a6=hookmetamethod(game,"__namecall",function(I,...)if getnamecallmethod()~="FireServer"then return a6(I,...)end local a7={...}if a5 and I==a5 then local a8=a7[1]if Z then pcall(function()local a9=Z:GetFighter(d)if a9 and a9.Items then for _,ba in pairs(a9.Items)do if ba:Get("ObjectID")==a8 then o=ba.Name break end end end end)end end if I==a1 then local C,E,q,bb=a7[1],a7[2],a7[3],a7[4]or{}if E~="Skin"then return a6(I,...)end if q and q~="None"and q~=""then local bc=j:Get("CosmeticInventory")if bc and rawget(bc,q)then return a6(I,...)end end k[C]=k[C]or{}if not q or q=="None"or q==""then k[C][E]=nil if not next(k[C])then k[C]=nil end else local bd=p(q,E,{inverted=bb.IsInverted,favoritesOnly=bb.OnlyUseFavorites})if bd then k[C][E]=bd end end task.defer(function()pcall(function()j.CurrentData:Replicate("WeaponInventory")end)task.wait(0.2)A()end)return end if I==a2 then local K=h.Cosmetics[a7[2]]if K and K.Type=="Skin"then l[a7[1]]=l[a7[1]]or{}l[a7[1]][a7[2]]=a7[3]or nil A()task.spawn(function()pcall(function()j.CurrentData:Replicate("FavoritedCosmetics")end)end)end return end return a6(I,...)end)end end local be pcall(function()be=require(d.PlayerScripts.Modules.ClientReplicatedClasses.ClientFighter.ClientItem)end)if be and be._CreateViewModel then local bf=be._CreateViewModel be._CreateViewModel=function(I,bg)local C=I.Name local bh=I.ClientFighter and I.ClientFighter.Player m=(bh==d)and C or nil if bh==d and k[C]and k[C].Skin and bg then local bi,bj,bk=I:ToEnum("Data"),I:ToEnum("Skin"),I:ToEnum("Name")if bg[bi]then bg[bi][bj]=k[C].Skin bg[bi][bk]=k[C].Skin.Name elseif bg.Data then bg.Data.Skin=k[C].Skin bg.Data.Name=k[C].Skin.Name end end local bl=bf(I,bg)m=nil return bl end end local bm=d.PlayerScripts.Modules.ClientReplicatedClasses.ClientFighter.ClientItem:FindFirstChild("ClientViewModel")if bm then local bn=require(bm)local bo=bn.new bn.new=function(bp,bq)local br=bq.ClientFighter and bq.ClientFighter.Player local C=m or bq.Name if br==d and k[C]then local bs=require(b.Modules.ReplicatedClass)local bt=bs:ToEnum("Data")bp[bt]=bp[bt]or{}local bu=k[C]if bu.Skin then bp[bt][bs:ToEnum("Skin")]=bu.Skin end end local bv=bo(bp,bq)return bv end end local bw=i.GetViewModelImageFromWeaponData i.GetViewModelImageFromWeaponData=function(I,bx,by)if not bx then return bw(I,bx,by)end local C=bx.Name local bz=(bx.Skin and k[C]and bx.Skin==k[C].Skin)or(n==d and k[C]and k[C].Skin)if bz and k[C]and k[C].Skin then local bA=I.ViewModels[k[C].Skin.Name]if bA then return bA[by and"ImageHighResolution"or"Image"]or bA.Image end end return bw(I,bx,by)end local bB=h.OwnsCosmetic h.OwnsCosmetic=function(I,J,q,C)if q:find("MISSING_")then return bB(I,J,q,C)end local K=h.Cosmetics[q]if K and(K.Type=="Charm"or q:lower():find("charm"))then return true end return bB(I,J,q,C)end local bC=j.Get j.Get=function(I,N)local O=bC(I,N)if N=="CosmeticInventory"then local P={}if O then for Q,R in pairs(O)do local K=h.Cosmetics[Q]if K and(K.Type=="Charm"or Q:lower():find("charm"))then P[Q]=R end end end return setmetatable(P,{__index=function(S,Q)local K=h.Cosmetics[Q]if K and(K.Type=="Charm"or Q:lower():find("charm"))then return true end return nil end})end if N=="FavoritedCosmetics"then local T=O and table.clone(O)or{}for C,U in pairs(l)do T[C]=T[C]or{}for q,V in pairs(U)do local K=h.Cosmetics[q]if K and(K.Type=="Charm"or q:lower():find("charm"))then T[C][q]=V end end end return T end return O end if hookmetamethod then local _=b:FindFirstChild("Remotes")local a0=_ and _:FindFirstChild("Data")local a1=a0 and a0:FindFirstChild("EquipCosmetic")local a2=a0 and a0:FindFirstChild("FavoriteCosmetic")if a1 then local a6 a6=hookmetamethod(game,"__namecall",function(I,...)if getnamecallmethod()~="FireServer"then return a6(I,...)end local a7={...}if I==a1 then local C,E,q,bb=a7[1],a7[2],a7[3],a7[4]or{}if E~="Charm"then return a6(I,...)end if q and q~="None"and q~=""then local bc=j:Get("CosmeticInventory")if bc and rawget(bc,q)then return a6(I,...)end end k[C]=k[C]or{}if not q or q=="None"or q==""then k[C][E]=nil if not next(k[C])then k[C]=nil end else local bd=p(q,E,{inverted=bb.IsInverted,favoritesOnly=bb.OnlyUseFavorites})if bd then k[C][E]=bd end end task.defer(function()pcall(function()j.CurrentData:Replicate("WeaponInventory")end)task.wait(0.2)A()end)return end if I==a2 then local K=h.Cosmetics[a7[2]]if K and(K.Type=="Charm"or a7[2]:lower():find("charm"))then l[a7[1]]=l[a7[1]]or{}l[a7[1]][a7[2]]=a7[3]or nil A()task.spawn(function()pcall(function()j.CurrentData:Replicate("FavoritedCosmetics")end)end)end return end return a6(I,...)end)end end if be and be._CreateViewModel then local bD=be._CreateViewModel be._CreateViewModel=function(I,bg)local C=I.Name local bh=I.ClientFighter and I.ClientFighter.Player m=(bh==d)and C or nil if bh==d and k[C]and k[C].Charm and bg then local bi,bj,bk=I:ToEnum("Data"),I:ToEnum("Charm"),I:ToEnum("Name")if bg[bi]then bg[bi][bj]=k[C].Charm bg[bi][bk]=k[C].Charm.Name elseif bg.Data then bg.Data.Charm=k[C].Charm bg.Data.Name=k[C].Charm.Name end end local bl=bD(I,bg)m=nil return bl end end if bm then local bn=require(bm)if bn.GetCharm then local bE=bn.GetCharm bn.GetCharm=function(I)local C=I.ClientItem and I.ClientItem.Name local bh=I.ClientItem and I.ClientItem.ClientFighter and I.ClientItem.ClientFighter.Player if C and bh==d and k[C]and k[C].Charm then return k[C].Charm end return bE(I)end end local bF=bn.new bn.new=function(bp,bq)local bh=bq.ClientFighter and bq.ClientFighter.Player local C=m or bq.Name if bh==d and k[C]then local bs=require(b.Modules.ReplicatedClass)local bt=bs:ToEnum("Data")bp[bt]=bp[bt]or{}local bu=k[C]if bu.Charm then bp[bt][bs:ToEnum("Charm")]=bu.Charm end end local bv=bF(bp,bq)return bv end end local bG=h.OwnsCosmetic h.OwnsCosmetic=function(I,J,q,C)if q:find("MISSING_")then return bG(I,J,q,C)end local K=h.Cosmetics[q]if K and(K.Type=="Dance"or K.Type=="Emote"or q:lower():find("dance")or q:lower():find("emote"))then return true end return bG(I,J,q,C)end local bH=j.Get j.Get=function(I,N)local O=bH(I,N)if N=="CosmeticInventory"then local P={}if O then for Q,R in pairs(O)do local K=h.Cosmetics[Q]if K and(K.Type=="Dance"or K.Type=="Emote"or Q:lower():find("dance")or Q:lower():find("emote"))then P[Q]=R end end end return setmetatable(P,{__index=function(S,Q)local K=h.Cosmetics[Q]if K and(K.Type=="Dance"or K.Type=="Emote"or Q:lower():find("dance")or Q:lower():find("emote"))then return true end return nil end})end if N=="FavoritedCosmetics"then local T=O and table.clone(O)or{}for C,U in pairs(l)do T[C]=T[C]or{}for q,V in pairs(U)do local K=h.Cosmetics[q]if K and(K.Type=="Dance"or K.Type=="Emote"or q:lower():find("dance")or q:lower():find("emote"))then T[C][q]=V end end end return T end return O end if hookmetamethod then local _=b:FindFirstChild("Remotes")local a0=_ and _:FindFirstChild("Data")local a1=a0 and a0:FindFirstChild("EquipCosmetic")local a2=a0 and a0:FindFirstChild("FavoriteCosmetic")if a1 then local a6 a6=hookmetamethod(game,"__namecall",function(I,...)if getnamecallmethod()~="FireServer"then return a6(I,...)end local a7={...}if I==a1 then local C,E,q,bb=a7[1],a7[2],a7[3],a7[4]or{}if E=="Dance"or E=="Emote"or(q and(q:lower():find("dance")or q:lower():find("emote")))then k.Dances=k.Dances or{}if not q or q=="None"or q==""then k.Dances[E]=nil else local bd=p(q,E,{inverted=bb.IsInverted,favoritesOnly=bb.OnlyUseFavorites})if bd then k.Dances[E]=bd end end task.defer(function()pcall(function()j.CurrentData:Replicate("CosmeticInventory")end)task.wait(0.2)A()end)return end return a6(I,...)end if I==a2 then local K=h.Cosmetics[a7[2]]if K and(K.Type=="Dance"or K.Type=="Emote"or a7[2]:lower():find("dance")or a7[2]:lower():find("emote"))then l[a7[1]]=l[a7[1]]or{}l[a7[1]][a7[2]]=a7[3]or nil A()task.spawn(function()pcall(function()j.CurrentData:Replicate("FavoritedCosmetics")end)end)end return end return a6(I,...)end)end end local bI pcall(function()bI=require(f:WaitForChild("EmoteController",10))if bI and bI.GetEmotes then local bJ=bI.GetEmotes bI.GetEmotes=function(I)local bK=bJ(I)for q,K in pairs(h.Cosmetics)do if K and(K.Type=="Dance"or K.Type=="Emote"or q:lower():find("dance")or q:lower():find("emote"))then if not bK[q]then bK[q]={Name=q,Type=K.Type,ObjectID=K.ObjectID,Enum=K.Enum}end end end return bK end end end)local bL=h.OwnsCosmetic h.OwnsCosmetic=function(I,J,q,C)if q:find("MISSING_")then return bL(I,J,q,C)end local K=h.Cosmetics[q]if K and(K.Type=="Wrap"or K.Type=="Wrapping"or q:lower():find("wrap"))then return true end return bL(I,J,q,C)end local bM=j.Get j.Get=function(I,N)local O=bM(I,N)if N=="CosmeticInventory"then local P={}if O then for Q,R in pairs(O)do local K=h.Cosmetics[Q]if K and(K.Type=="Wrap"or K.Type=="Wrapping"or Q:lower():find("wrap"))then P[Q]=R end end end return setmetatable(P,{__index=function(S,Q)local K=h.Cosmetics[Q]if K and(K.Type=="Wrap"or K.Type=="Wrapping"or Q:lower():find("wrap"))then return true end return nil end})end if N=="FavoritedCosmetics"then local T=O and table.clone(O)or{}for C,U in pairs(l)do T[C]=T[C]or{}for q,V in pairs(U)do local K=h.Cosmetics[q]if K and(K.Type=="Wrap"or K.Type=="Wrapping"or q:lower():find("wrap"))then T[C][q]=V end end end return T end return O end if hookmetamethod then local _=b:FindFirstChild("Remotes")local a0=_ and _:FindFirstChild("Data")local a1=a0 and a0:FindFirstChild("EquipCosmetic")local a2=a0 and a0:FindFirstChild("FavoriteCosmetic")if a1 then local a6 a6=hookmetamethod(game,"__namecall",function(I,...)if getnamecallmethod()~="FireServer"then return a6(I,...)end local a7={...}if I==a1 then local C,E,q,bb=a7[1],a7[2],a7[3],a7[4]or{}if E~="Wrap"and E~="Wrapping"then return a6(I,...)end if q and q~="None"and q~=""then local bc=j:Get("CosmeticInventory")if bc and rawget(bc,q)then return a6(I,...)end end k[C]=k[C]or{}if not q or q=="None"or q==""then k[C][E]=nil if not next(k[C])then k[C]=nil end else local bd=p(q,E,{inverted=bb.IsInverted,favoritesOnly=bb.OnlyUseFavorites})if bd then k[C][E]=bd end end task.defer(function()pcall(function()j.CurrentData:Replicate("WeaponInventory")end)task.wait(0.2)A()end)return end if I==a2 then local K=h.Cosmetics[a7[2]]if K and(K.Type=="Wrap"or K.Type=="Wrapping"or a7[2]:lower():find("wrap"))then l[a7[1]]=l[a7[1]]or{}l[a7[1]][a7[2]]=a7[3]or nil A()task.spawn(function()pcall(function()j.CurrentData:Replicate("FavoritedCosmetics")end)end)end return end return a6(I,...)end)end end if be and be._CreateViewModel then local bN=be._CreateViewModel be._CreateViewModel=function(I,bg)local C=I.Name local bh=I.ClientFighter and I.ClientFighter.Player m=(bh==d)and C or nil if bh==d and k[C]and k[C].Wrap and bg then local bi,bj,bk=I:ToEnum("Data"),I:ToEnum("Wrap"),I:ToEnum("Name")if bg[bi]then bg[bi][bj]=k[C].Wrap bg[bi][bk]=k[C].Wrap.Name elseif bg.Data then bg.Data.Wrap=k[C].Wrap bg.Data.Name=k[C].Wrap.Name end end local bl=bN(I,bg)m=nil return bl end end if bm then local bn=require(bm)if bn.GetWrap then local bO=bn.GetWrap bn.GetWrap=function(I)local C=I.ClientItem and I.ClientItem.Name local bh=I.ClientItem and I.ClientItem.ClientFighter and I.ClientItem.ClientFighter.Player if C and bh==d and k[C]and k[C].Wrap then return k[C].Wrap end return bO(I)end end local bP=bn.new bn.new=function(bp,bq)local bh=bq.ClientFighter and bq.ClientFighter.Player local C=m or bq.Name if bh==d and k[C]then local bs=require(b.Modules.ReplicatedClass)local bt=bs:ToEnum("Data")bp[bt]=bp[bt]or{}local bu=k[C]if bu.Wrap then bp[bt][bs:ToEnum("Wrap")]=bu.Wrap end end local bv=bP(bp,bq)if bh==d and k[C]and k[C].Wrap and bv._UpdateWrap then bv:_UpdateWrap()task.delay(0.1,function()if not bv._destroyed then bv:_UpdateWrap()end end)end return bv end end pcall(function()local bQ=require(d.PlayerScripts.Modules.Pages.ViewProfile)if bQ and bQ.Fetch then local bR=bQ.Fetch bQ.Fetch=function(I,bS)n=bS return bR(I,bS)end end end)G()print("✅ 全皮膚解鎖已載入")end
+
+-- ===== 玩家增強 =====
+local SpeedEnabled = false
+local InfiniteJumpEnabled = false
+local SpeedMultiplier = 0.3
+local JumpMultiplier = 2.0
+local GravitySetting = 1.0
+
+RunService.Stepped:Connect(function()
+    if not SpeedEnabled then return end
+    local char = LocalPlayer.Character
+    if char then
+        local root = char:FindFirstChild("HumanoidRootPart")
+        local hum = char:FindFirstChildWhichIsA("Humanoid")
+        if root and hum then
+            local direction = hum.MoveDirection
+            if direction.Magnitude > 0 then
+                root.CFrame = root.CFrame + direction * SpeedMultiplier
+            end
+        end
+    end
+end)
+
+RunService.Heartbeat:Connect(function()
+    Workspace.Gravity = 196.2 * GravitySetting
+end)
+
+UserInputService.JumpRequest:Connect(function()
+    if InfiniteJumpEnabled then
+        local char = LocalPlayer.Character
+        if char then
+            local hum = char:FindFirstChildWhichIsA("Humanoid")
+            if hum then
+                hum.JumpPower = 50 * JumpMultiplier
+                hum:ChangeState(Enum.HumanoidStateType.Jumping)
+            end
+        end
+    end
+end)
+
+-- ===== Hub GUI =====
+local wallbangDesync = WallbangModule.new()
+local wallbangV2 = WallbangV2.new()
+local screenGui = Instance.new("ScreenGui", CoreGui)
+screenGui.Name = HttpService:GenerateGUID(false)
+screenGui.ResetOnSpawn = false
+local Panel = Instance.new("Frame", screenGui) Panel.Size = UDim2.new(0,550,0,330) Panel.Position = UDim2.new(0.5,-275,0.5,-165) Panel.BackgroundColor3 = Color3.fromRGB(18,18,22) Panel.BackgroundTransparency = 0.1 Panel.BorderSizePixel = 0 Panel.ClipsDescendants = true Panel.Active = true
+Instance.new("UICorner", Panel).CornerRadius = UDim.new(0,14)
+local RainbowStroke = Instance.new("UIStroke", Panel) RainbowStroke.Thickness = 2 RainbowStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+local hueStroke = 0 RunService.RenderStepped:Connect(function() hueStroke = hueStroke + 0.005 if hueStroke > 1 then hueStroke = 0 end RainbowStroke.Color = Color3.fromHSV(hueStroke,1,1) end)
+local TitleBar = Instance.new("Frame", Panel) TitleBar.Size = UDim2.new(1,0,0,36) TitleBar.BackgroundColor3 = Color3.fromRGB(12,12,15) TitleBar.BorderSizePixel = 0 TitleBar.Active = true
+Instance.new("UICorner", TitleBar).CornerRadius = UDim.new(0,14)
+local TitleText = Instance.new("TextLabel", TitleBar) TitleText.Size = UDim2.new(1,-50,1,0) TitleText.Position = UDim2.new(0,15,0,0) TitleText.BackgroundTransparency = 1 TitleText.Text = "星輝輔助hub" TitleText.TextColor3 = Color3.fromRGB(255,255,255) TitleText.Font = Enum.Font.GothamBold TitleText.TextSize = 18 TitleText.TextXAlignment = Enum.TextXAlignment.Left
+local CloseBtn = Instance.new("TextButton", TitleBar) CloseBtn.Size = UDim2.new(0,30,0,30) CloseBtn.Position = UDim2.new(1,-35,0,3) CloseBtn.BackgroundColor3 = Color3.fromRGB(255,70,70) CloseBtn.Text = "✕" CloseBtn.TextColor3 = Color3.fromRGB(255,255,255) CloseBtn.Font = Enum.Font.GothamBold CloseBtn.TextSize = 20 CloseBtn.BorderSizePixel = 0
+Instance.new("UICorner", CloseBtn).CornerRadius = UDim.new(0,8)
+
+local LeftTabFrame = Instance.new("Frame", Panel) LeftTabFrame.Size = UDim2.new(0,90,1,-80) LeftTabFrame.Position = UDim2.new(0,15,0,46) LeftTabFrame.BackgroundTransparency = 1
+local TabButtons = {} local TabContents = {} local TabNames = {"主頁","攻擊","視覺","玩家"}
+for i,name in ipairs(TabNames) do
+    local btn = Instance.new("TextButton", LeftTabFrame) btn.Size = UDim2.new(1,0,0,32) btn.Position = UDim2.new(0,0,0,(i-1)*(32+6)) btn.BackgroundColor3 = Color3.fromRGB(50,50,60) btn.Text = name btn.TextColor3 = Color3.new(1,1,1) btn.Font = Enum.Font.GothamBold btn.TextSize = 14
+    Instance.new("UICorner", btn).CornerRadius = UDim.new(0,10)
+    btn.MouseButton1Click:Connect(function()
+        for j,b in ipairs(TabButtons) do TweenService:Create(b, TweenInfo.new(0.25), {BackgroundColor3 = Color3.fromRGB(50,50,60)}):Play() end
+        TweenService:Create(btn, TweenInfo.new(0.25), {BackgroundColor3 = Color3.fromRGB(100,100,120)}):Play()
+        for j,c in ipairs(TabContents) do c.Visible = (j==i) end
+    end)
+    TabButtons[i] = btn
+end
+local ContentArea = Instance.new("Frame", Panel) ContentArea.Size = UDim2.new(1,-120,1,-55) ContentArea.Position = UDim2.new(0,110,0,46) ContentArea.BackgroundColor3 = Color3.fromRGB(28,28,34) ContentArea.BackgroundTransparency = 0.3 ContentArea.BorderSizePixel = 0
+Instance.new("UICorner", ContentArea).CornerRadius = UDim.new(0,10)
+for i = 1, #TabNames do
+    local content = Instance.new("Frame", ContentArea) content.Size = UDim2.new(1,0,1,0) content.BackgroundTransparency = 1 content.Visible = (i==1)
+    TabContents[i] = content
+end
+TweenService:Create(TabButtons[1], TweenInfo.new(0.01), {BackgroundColor3 = Color3.fromRGB(100,100,120)}):Play()
+
+-- 左下角頭像資訊
+local AvatarFrame = Instance.new("Frame", Panel) AvatarFrame.Size = UDim2.new(0,44,0,44) AvatarFrame.Position = UDim2.new(0,25,1,-55) AvatarFrame.BackgroundColor3 = Color3.fromRGB(60,60,70) AvatarFrame.BorderSizePixel = 0
+Instance.new("UICorner", AvatarFrame).CornerRadius = UDim.new(1,0)
+local AvatarLabel = Instance.new("TextLabel", AvatarFrame) AvatarLabel.Size = UDim2.new(1,0,1,0) AvatarLabel.BackgroundTransparency = 1 AvatarLabel.Text = LocalPlayer.Name:sub(1,1) AvatarLabel.TextColor3 = Color3.new(1,1,1) AvatarLabel.Font = Enum.Font.GothamBold AvatarLabel.TextSize = 22
+local NameLabel = Instance.new("TextLabel", Panel) NameLabel.Size = UDim2.new(0,180,0,22) NameLabel.Position = UDim2.new(0,75,1,-55) NameLabel.BackgroundTransparency = 1 NameLabel.Text = LocalPlayer.Name NameLabel.TextColor3 = Color3.new(1,1,1) NameLabel.Font = Enum.Font.GothamBold NameLabel.TextSize = 15 NameLabel.TextXAlignment = Enum.TextXAlignment.Left
+local IdLabel = Instance.new("TextLabel", Panel) IdLabel.Size = UDim2.new(0,180,0,18) IdLabel.Position = UDim2.new(0,75,1,-30) IdLabel.BackgroundTransparency = 1 IdLabel.Text = "ID: "..LocalPlayer.UserId IdLabel.TextColor3 = Color3.new(0.7,0.7,0.7) IdLabel.Font = Enum.Font.Gotham IdLabel.TextSize = 12 IdLabel.TextXAlignment = Enum.TextXAlignment.Left
+
+-- 圓球模式
+local BallSize = 65
+local Circle = Instance.new("ImageButton", screenGui) Circle.Size = UDim2.new(0,BallSize,0,BallSize) Circle.Position = UDim2.new(0.5,-BallSize/2,0.5,-BallSize/2) Circle.BackgroundColor3 = Color3.fromRGB(20,20,25) Circle.BackgroundTransparency = 0.8 Circle.Image = "rbxassetid://0" Circle.Visible = false
+Instance.new("UICorner", Circle).CornerRadius = UDim.new(1,0)
+local CircleStroke = Instance.new("UIStroke", Circle) CircleStroke.Thickness = 3
+local hueCircle = 0 RunService.RenderStepped:Connect(function() hueCircle = hueCircle + 0.01 if hueCircle > 1 then hueCircle = 0 end CircleStroke.Color = Color3.fromHSV(hueCircle,1,1) end)
+local CircleText = Instance.new("TextLabel", Circle) CircleText.Size = UDim2.new(1,0,1,0) CircleText.BackgroundTransparency = 1 CircleText.Text = "星輝" CircleText.TextColor3 = Color3.new(1,1,1) CircleText.Font = Enum.Font.GothamBold CircleText.TextSize = 16
+local function showPanel() Panel.Visible = true Circle.Visible = false end
+local function showCircle() Panel.Visible = false Circle.Visible = true end
+CloseBtn.Activated:Connect(showCircle) Circle.Activated:Connect(showPanel)
+
+-- 拖曳
+local function setupDrag(dragEl, targetEl)
+    local dragging, dragStart, startPos
+    dragEl.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then
+            dragging = true dragStart = input.Position startPos = targetEl.Position
+            input.Changed:Connect(function() if input.UserInputState == Enum.UserInputState.End then dragging = false end end)
+        end
+    end)
+    UserInputService.InputChanged:Connect(function(input)
+        if dragging and (input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseMovement) then
+            local delta = input.Position - dragStart
+            targetEl.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+        end
+    end)
+end
+setupDrag(TitleBar, Panel) setupDrag(Circle, Circle)
+
+-- ===== 攻擊分頁自動佈局 =====
+local attackContent = TabContents[2]
+local AttackScroll = Instance.new("ScrollingFrame", attackContent)
+AttackScroll.Size = UDim2.new(1, 0, 1, 0)
+AttackScroll.BackgroundTransparency = 1
+AttackScroll.BorderSizePixel = 0
+AttackScroll.ScrollBarThickness = 3
+AttackScroll.CanvasSize = UDim2.new(0, 0, 0, 0)
+
+local AttackList = Instance.new("UIListLayout", AttackScroll)
+AttackList.SortOrder = Enum.SortOrder.LayoutOrder
+AttackList.Padding = UDim.new(0, 4)
+
+local function createToggle(parent, name, callback, isSubControl)
+    local btn = Instance.new("TextButton", parent)
+    btn.Size = UDim2.new(1, -6, 0, 30)
+    btn.BackgroundColor3 = Color3.fromRGB(50, 50, 60)
+    btn.Text = name .. " OFF"
+    btn.TextColor3 = Color3.new(1, 1, 1)
+    btn.Font = Enum.Font.GothamBold
+    btn.TextSize = 13
+    Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 8)
+    local state = false
+    btn.Activated:Connect(function()
+        state = not state
+        btn.Text = name .. (state and " ON" or " OFF")
+        btn.BackgroundColor3 = state and Color3.fromRGB(0, 170, 0) or Color3.fromRGB(50, 50, 60)
+        callback(state)
+    end)
+    if isSubControl then btn.Visible = false end
+    return btn
+end
+
+local activeSlider = nil
+local function createSlider(parent, name, minV, maxV, defV, callback, isSubControl)
+    local c = Instance.new("Frame", parent)
+    c.Size = UDim2.new(1, -6, 0, 40)
+    c.BackgroundColor3 = Color3.fromRGB(40, 40, 48)
+    Instance.new("UICorner", c).CornerRadius = UDim.new(0, 8)
+    local l = Instance.new("TextLabel", c)
+    l.Size = UDim2.new(1, 0, 0, 18)
+    l.Position = UDim2.new(0, 6, 0, 2)
+    l.BackgroundTransparency = 1
+    l.Text = name .. ": " .. tostring(defV)
+    l.TextColor3 = Color3.new(1, 1, 1)
+    l.Font = Enum.Font.Gotham
+    l.TextSize = 12
+    local bar = Instance.new("Frame", c)
+    bar.Size = UDim2.new(1, -16, 0, 6)
+    bar.Position = UDim2.new(0, 8, 0, 26)
+    bar.BackgroundColor3 = Color3.fromRGB(60, 60, 70)
+    Instance.new("UICorner", bar).CornerRadius = UDim.new(0, 3)
+    local fill = Instance.new("Frame", bar)
+    fill.Size = UDim2.new((defV - minV) / (maxV - minV), 0, 1, 0)
+    fill.BackgroundColor3 = Color3.fromHSV(0.58, 1, 1)
+    Instance.new("UICorner", fill).CornerRadius = UDim.new(0, 3)
+    local function update(pos)
+        local x = math.clamp((pos.X - bar.AbsolutePosition.X) / bar.AbsoluteSize.X, 0, 1)
+        fill.Size = UDim2.new(x, 0, 1, 0)
+        local val = math.floor(minV + (maxV - minV) * x)
+        l.Text = name .. ": " .. tostring(val)
+        callback(val)
+    end
+    bar.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.Touch then
+            activeSlider = update
+            update(input.Position)
+        end
+    end)
+    if isSubControl then c.Visible = false end
+    return c
+end
+UserInputService.TouchMoved:Connect(function(touch)
+    if activeSlider then activeSlider(touch.Position) end
+end)
+UserInputService.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.Touch then activeSlider = nil end
+end)
+
+local function createFloatingDropdown(parent, panel, name, options, callback, isSubControl)
+    local mainBtn = Instance.new("TextButton", parent)
+    mainBtn.Size = UDim2.new(1, -6, 0, 30)
+    mainBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 60)
+    mainBtn.Text = name .. " 🔽"
+    mainBtn.TextColor3 = Color3.new(1, 1, 1)
+    mainBtn.Font = Enum.Font.GothamBold
+    mainBtn.TextSize = 13
+    Instance.new("UICorner", mainBtn).CornerRadius = UDim.new(0, 8)
+
+    local popup = Instance.new("Frame", panel)
+    popup.Size = UDim2.new(0, 0, 0, 0)
+    popup.BackgroundColor3 = Color3.fromRGB(35, 35, 40)
+    popup.BorderSizePixel = 0
+    popup.ClipsDescendants = true
+    popup.Visible = false
+    popup.ZIndex = 10
+    Instance.new("UICorner", popup).CornerRadius = UDim.new(0, 6)
+
+    local expanded = false
+
+    for i, opt in ipairs(options) do
+        local optBtn = Instance.new("TextButton", popup)
+        optBtn.Size = UDim2.new(1, -8, 0, 28)
+        optBtn.Position = UDim2.new(0, 4, 0, 4 + (i-1)*30)
+        optBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 60)
+        optBtn.Text = (i == 1 and "1. " or "2. ") .. opt
+        optBtn.TextColor3 = Color3.new(1, 1, 1)
+        optBtn.Font = Enum.Font.Gotham
+        optBtn.TextSize = 12
+        optBtn.ZIndex = 11
+        Instance.new("UICorner", optBtn).CornerRadius = UDim.new(0, 4)
+        optBtn.Activated:Connect(function()
+            mainBtn.Text = opt .. " 🔽"
+            callback(opt)
+            popup.Visible = false
+            expanded = false
+        end)
+    end
+
+    local function updatePopupPosition()
+        local absPos = mainBtn.AbsolutePosition
+        local absSize = mainBtn.AbsoluteSize
+        local panelAbs = panel.AbsolutePosition
+        popup.Position = UDim2.new(0, absPos.X - panelAbs.X + 8, 0, absPos.Y - panelAbs.Y + absSize.Y + 2)
+        popup.Size = UDim2.new(0, absSize.X - 16, 0, #options * 30 + 8)
+    end
+
+    mainBtn.Activated:Connect(function()
+        expanded = not expanded
+        if expanded then
+            updatePopupPosition()
+            popup.Visible = true
+            mainBtn.Text = name .. " ⬆️"
+        else
+            popup.Visible = false
+            mainBtn.Text = name .. " 🔽"
+        end
+    end)
+
+    if isSubControl then mainBtn.Visible = false end
+    return {MainBtn = mainBtn, Popup = popup}
+end
+
+local function createDivider(parent)
+    local line = Instance.new("Frame", parent)
+    line.Size = UDim2.new(1, -6, 0, 1)
+    line.BackgroundColor3 = Color3.fromRGB(80, 80, 90)
+    line.BorderSizePixel = 0
+    return line
+end
+
+local attackSubControls = {}
+
+createToggle(AttackScroll, "黑牆", function(b) if b then BlackWall:Enable() else BlackWall:Disable() end end)
+createToggle(AttackScroll, "速彈無後座", function(b) if b then SpeedNoRecoil:Enable() else SpeedNoRecoil:Disable() end end)
+
+createDivider(AttackScroll)
+
+createToggle(AttackScroll, "靜默瞄準", function(b)
+    if b then SilentAim:Enable() else SilentAim:Disable() end
+    for _, ctrl in ipairs(attackSubControls) do ctrl.Visible = b end
+    AttackScroll.CanvasSize = UDim2.new(0, 0, 0, AttackList.AbsoluteContentSize.Y + 10)
+end)
+
+local teamCheckBtn = createToggle(AttackScroll, "隊伍檢查", function(b) SilentAim.TeamCheck = b end, true)
+table.insert(attackSubControls, teamCheckBtn)
+
+local aimPartDropdown = createFloatingDropdown(AttackScroll, Panel, "部位", {"Head", "HumanoidRootPart"}, function(v) SilentAim.AimPart = v end, true)
+table.insert(attackSubControls, aimPartDropdown.MainBtn)
+
+local rangeLimitBtn = createToggle(AttackScroll, "範圍限制", function(b)
+    SilentAim.LimitRange = b
+    if rangeSliderRef then rangeSliderRef.Visible = b end
+    AttackScroll.CanvasSize = UDim2.new(0, 0, 0, AttackList.AbsoluteContentSize.Y + 10)
+end, true)
+table.insert(attackSubControls, rangeLimitBtn)
+
+local rangeSliderRef = createSlider(AttackScroll, "最大距離", 50, 800, 300, function(v) SilentAim.MaxDistance = v end, true)
+rangeSliderRef.Visible = false
+table.insert(attackSubControls, rangeSliderRef)
+
+createToggle(AttackScroll, "穿牆 Desync", function(b) if b then wallbangDesync:Start() else wallbangDesync:Stop() end end)
+createToggle(AttackScroll, "穿牆 V2", function(b) if b then wallbangV2:Start() else wallbangV2:Stop() end end)
+
+AttackScroll.CanvasSize = UDim2.new(0, 0, 0, AttackList.AbsoluteContentSize.Y + 10)
+
+-- 視覺分頁
+local visualContent = TabContents[3]
+local visualY = 0
+local visualToggle = function(name, callback)
+    local btn = Instance.new("TextButton", visualContent)
+    btn.Size = UDim2.new(1, -20, 0, 28)
+    btn.Position = UDim2.new(0, 10, 0, visualY)
+    btn.BackgroundColor3 = Color3.fromRGB(50, 50, 60)
+    btn.Text = name .. " OFF"
+    btn.TextColor3 = Color3.new(1, 1, 1)
+    btn.Font = Enum.Font.GothamBold
+    btn.TextSize = 13
+    Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 8)
+    local state = false
+    btn.Activated:Connect(function()
+        state = not state
+        btn.Text = name .. (state and " ON" or " OFF")
+        btn.BackgroundColor3 = state and Color3.fromRGB(0, 170, 0) or Color3.fromRGB(50, 50, 60)
+        callback(state)
+    end)
+    visualY = visualY + 34
+    return btn
+end
+visualToggle("星空", function(b) if b then OfficialSky:Enable() else OfficialSky:Disable() end end)
+local unlockBtn = Instance.new("TextButton", visualContent)
+unlockBtn.Size = UDim2.new(1, -20, 0, 28)
+unlockBtn.Position = UDim2.new(0, 10, 0, visualY)
+unlockBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 60)
+unlockBtn.Text = "全皮解鎖 (點擊執行)"
+unlockBtn.TextColor3 = Color3.new(1, 1, 1)
+unlockBtn.Font = Enum.Font.GothamBold
+unlockBtn.TextSize = 13
+Instance.new("UICorner", unlockBtn).CornerRadius = UDim.new(0, 8)
+unlockBtn.Activated:Connect(function()
+    unlockBtn.Text = "執行中..."
+    unlockBtn.BackgroundColor3 = Color3.fromRGB(255, 170, 0)
+    task.spawn(function()
+        local success, err = pcall(ExecuteUnlockAll)
+        if success then unlockBtn.Text = "✅ 已解鎖" unlockBtn.BackgroundColor3 = Color3.fromRGB(0, 200, 100)
+        else unlockBtn.Text = "❌ 失敗" unlockBtn.BackgroundColor3 = Color3.fromRGB(200, 0, 0) warn(err) end
+        task.wait(2) unlockBtn.Text = "全皮解鎖 (點擊執行)" unlockBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 60)
+    end)
+end)
+
+-- 玩家分頁
+local playerContent = TabContents[4]
+local playerY = 0
+local playerToggle = function(name, callback)
+    local btn = Instance.new("TextButton", playerContent)
+    btn.Size = UDim2.new(1, -20, 0, 28)
+    btn.Position = UDim2.new(0, 10, 0, playerY)
+    btn.BackgroundColor3 = Color3.fromRGB(50, 50, 60)
+    btn.Text = name .. " OFF"
+    btn.TextColor3 = Color3.new(1, 1, 1)
+    btn.Font = Enum.Font.GothamBold
+    btn.TextSize = 13
+    Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 8)
+    local state = false
+    btn.Activated:Connect(function()
+        state = not state
+        btn.Text = name .. (state and " ON" or " OFF")
+        btn.BackgroundColor3 = state and Color3.fromRGB(0, 170, 0) or Color3.fromRGB(50, 50, 60)
+        callback(state)
+    end)
+    playerY = playerY + 34
+    return btn
+end
+local playerSlider = function(name, minV, maxV, defV, callback)
+    local c = Instance.new("Frame", playerContent)
+    c.Size = UDim2.new(1, -20, 0, 38)
+    c.Position = UDim2.new(0, 10, 0, playerY)
+    c.BackgroundColor3 = Color3.fromRGB(40, 40, 48)
+    Instance.new("UICorner", c).CornerRadius = UDim.new(0, 8)
+    local l = Instance.new("TextLabel", c)
+    l.Size = UDim2.new(1, 0, 0, 16)
+    l.Position = UDim2.new(0, 6, 0, 0)
+    l.BackgroundTransparency = 1
+    l.Text = name .. ": " .. string.format("%.1f", defV)
+    l.TextColor3 = Color3.new(1, 1, 1)
+    l.Font = Enum.Font.Gotham
+    l.TextSize = 12
+    local bar = Instance.new("Frame", c)
+    bar.Size = UDim2.new(1, -16, 0, 6)
+    bar.Position = UDim2.new(0, 8, 0, 24)
+    bar.BackgroundColor3 = Color3.fromRGB(60, 60, 70)
+    Instance.new("UICorner", bar).CornerRadius = UDim.new(0, 3)
+    local fill = Instance.new("Frame", bar)
+    fill.Size = UDim2.new((defV - minV) / (maxV - minV), 0, 1, 0)
+    fill.BackgroundColor3 = Color3.fromHSV(0.58, 1, 1)
+    Instance.new("UICorner", fill).CornerRadius = UDim.new(0, 3)
+    local function update(pos)
+        local x = math.clamp((pos.X - bar.AbsolutePosition.X) / bar.AbsoluteSize.X, 0, 1)
+        fill.Size = UDim2.new(x, 0, 1, 0)
+        local val = minV + (maxV - minV) * x
+        l.Text = name .. ": " .. string.format("%.1f", val)
+        callback(val)
+    end
+    bar.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.Touch then
+            activeSlider = update
+            update(input.Position)
+        end
+    end)
+    playerY = playerY + 44
+    return c
+end
+playerSlider("速度倍率", 0, 0.7, 0.3, function(v) SpeedMultiplier = v end)
+playerToggle("啟用加速", function(b) SpeedEnabled = b end)
+playerSlider("跳躍倍率", 1, 10, 2, function(v) JumpMultiplier = v end)
+playerSlider("重力倍率", 0.1, 3, 1, function(v) GravitySetting = v end)
+playerToggle("無限跳躍", function(b) InfiniteJumpEnabled = b end)
+
+print("星輝輔助hub 完整修復版已載入")
