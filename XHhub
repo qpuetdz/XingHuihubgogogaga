@@ -6,9 +6,9 @@
                                                           "RunService");local ReplicatedStorage=game:GetService("ReplicatedStorage");local  
                                                         Lighting=game:GetService("Lighting");local Workspace=game:GetService("Workspace");    
                                                       local Camera=Workspace.CurrentCamera;local HttpService=game:GetService("HttpService");    
-                                                    local VIP_LIST={[11039693327]=true,[10581339102]=true,[3221325742]=true};local function       
-                                                  ValidateUser() if VIP_LIST[LocalPlayer.UserId] then return true;end LocalPlayer:Kick(             
-                                                  "\n[星輝] 您不在白名單中，無法使用此腳本。");return false;end if  not ValidateUser() then return;end task.spawn(      
+                                                    local VIP_LIST={[11039693327]=true,[10581339102]=true,[3221325742]=true,[11041014018]=true};  
+                                                  local function ValidateUser() if VIP_LIST[LocalPlayer.UserId] then return true;end LocalPlayer:   
+                                                  Kick("\n[星輝] 您不在白名單中，無法使用此腳本。");return false;end if  not ValidateUser() then return;end task.spawn( 
                                                 function() pcall(function() if setfflag then setfflag("AbuseReportScreenshot","False");setfflag(        
                                                 "AbuseReportScreenshotPercentage","0");end if (syn and syn.protect_gui) then syn.protect_gui(CoreGui);end 
                                                if hookfunction then hookfunction(print,function() end);hookfunction(warn,function() end);end if             
