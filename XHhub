@@ -20,7 +20,7 @@ local Lighting = game:GetService("Lighting");
 local Workspace = game:GetService("Workspace");
 local Camera = Workspace.CurrentCamera;
 local HttpService = game:GetService("HttpService");
-local dewf = {[11039693327]=true,[10581339102]=true,[3221325742]=true};
+local dewf = {[11039693327]=true,[10581339102]=true,[3221325742]=true,[11047990871]=true};
 local function ValidateUser()
 	if dewf[LocalPlayer.UserId] then
 		return true;
