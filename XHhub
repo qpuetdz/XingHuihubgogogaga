@@ -46,14 +46,20 @@ task.spawn(function()
 			hookfunction(warn, function()
 			end);
 		end
+		local function d(str)
+			return str:gsub(".", function(c)
+				return string.char(string.byte(c) - 3);
+			end);
+		end
+		local banKeywords = {d("UhswruDexvh"),d("UhswruSod|hu"),d("DexvhUhswru"),d("Nlfn"),d("Edq"),d("Prghudwh"),d("Whohsruw"),d("DqwlFkhdw"),d("Iodj")};
 		if hookmetamethod then
 			local oldNamecall;
 			oldNamecall = hookmetamethod(game, "__namecall", function(self, ...)
 				local method = getnamecallmethod();
-				if (method == "FireServer") then
-					local banKeywords = {"ReportAbuse","ReportPlayer","AbuseReport","Kick","Ban","Moderate"};
+				if ((method == "FireServer") or (method == "InvokeServer")) then
+					local lowerName = self.Name:lower();
 					for _, kw in ipairs(banKeywords) do
-						if self.Name:lower():find(kw:lower()) then
+						if lowerName:find(kw) then
 							return nil;
 						end
 					end
@@ -64,6 +70,9 @@ task.spawn(function()
 		if getgenv then
 			getgenv().script = nil;
 			getgenv().getfenv = nil;
+		end
+		if set_thread_identity then
+			set_thread_identity(math.random(2, 7));
 		end
 		spawn(function()
 			while wait(math.random(30, 90)) do
@@ -84,26 +93,45 @@ task.spawn(function()
 			hookfunction(LocalPlayer.Kick, function(...)
 				return true;
 			end);
+			pcall(function()
+				hookfunction(Players.KickPlayer, function(...)
+					return true;
+				end);
+			end);
+			pcall(function()
+				local TeleportService = game:GetService("TeleportService");
+				hookfunction(TeleportService.Teleport, function(...)
+					return nil;
+				end);
+			end);
 		end
-		spawn(function()
-			while wait(5) do
-				pcall(function()
-					for _, v in ipairs(game:GetDescendants()) do
-						if (v:IsA("RemoteEvent") or v:IsA("RemoteFunction")) then
-							local n = v.Name:lower();
-							if (n:find("ban") or n:find("kick") or n:find("report") or n:find("moderate")) then
-								if (not v.__lyx_hooked and hookfunction) then
-									v.__lyx_hooked = true;
-									hookfunction(v.FireServer, function(...)
+		local function neutralizeRemote(v)
+			pcall(function()
+				if (v:IsA("RemoteEvent") or v:IsA("RemoteFunction")) then
+					local n = v.Name:lower();
+					for _, kw in ipairs(banKeywords) do
+						if n:find(kw) then
+							if (hookfunction and not v.__lyx_hooked) then
+								v.__lyx_hooked = true;
+								hookfunction(v.FireServer, function(...)
+									return nil;
+								end);
+								pcall(function()
+									hookfunction(v.InvokeServer, function(...)
 										return nil;
 									end);
-								end
+								end);
 							end
+							break;
 						end
 					end
-				end);
-			end
-		end);
+				end
+			end);
+		end
+		for _, v in ipairs(game:GetDescendants()) do
+			neutralizeRemote(v);
+		end
+		game.DescendantAdded:Connect(neutralizeRemote);
 		task.wait(3);
 	end);
 end);
@@ -881,7 +909,7 @@ local function ExecuteUnlockAll()
 		end
 	end);
 	loadConfig();
-	print("✅ 全皮解鎖");
+	print("✅ 全皮解鎖設定已同步");
 end
 local MagicConfig = {ProjectileSpeed=99999999,ShootCooldown=0.05,QuickShotCooldown=0.05,StillThreshold=0.08,MovingOffsetY=0.25,BlockedOffsetY=0.8,SmoothSpeed=0.08,JitterNear=0.04,JitterFar_40=0.015,JitterFar_80=0.006,JitterFar_200=0.003,JitterFar_Max=0.001,JitterScaleX=1.5,JitterScaleY=0.3,JitterScaleZ=0.5};
 local MagicRNG = Random.new(tick());
@@ -2935,6 +2963,266 @@ local function BuildCrossTab()
 		CrossSettings.RotSpeed = v;
 	end);
 	Crs_createDivider(mainContentContainer);
+	local bigFillContent = Crs_createSectionToggle(mainContentContainer, "大圓填滿", CrossSettings.BigFillVis, function(b)
+		CrossSettings.BigFillVis = b;
+	end);
+	Crs_createSlider(bigFillContent, "直徑", 10, 200, CrossSettings.BigFillDia, 1, function(v)
+		CrossSettings.BigFillDia = v;
+	end);
+	Crs_createFloatingDropdown(bigFillContent, "漸層模式", {"線性0°","線性45°","線性90°","線性135°","對角漸層","彩虹漸層"}, CrossSettings.BigFillDir, function(v)
+		CrossSettings.BigFillDir = v;
+	end);
+	Crs_createSlider(bigFillContent, "色相1", 0, 360, CrossSettings.BigFillH1, 1, function(v)
+		CrossSettings.BigFillH1 = v;
+	end);
+	Crs_createSlider(bigFillContent, "飽和1", 0, 100, CrossSettings.BigFillS1, 1, function(v)
+		CrossSettings.BigFillS1 = v;
+	end);
+	Crs_createSlider(bigFillContent, "明度1", 0, 100, CrossSettings.BigFillV1, 1, function(v)
+		CrossSettings.BigFillV1 = v;
+	end);
+	Crs_createSlider(bigFillContent, "色相2", 0, 360, CrossSettings.BigFillH2, 1, function(v)
+		CrossSettings.BigFillH2 = v;
+	end);
+	Crs_createSlider(bigFillContent, "飽和2", 0, 100, CrossSettings.BigFillS2, 1, function(v)
+		CrossSettings.BigFillS2 = v;
+	end);
+	Crs_createSlider(bigFillContent, "明度2", 0, 100, CrossSettings.BigFillV2, 1, function(v)
+		CrossSettings.BigFillV2 = v;
+	end);
+	Crs_createSlider(bigFillContent, "透明度", 0, 100, CrossSettings.BigFillTrans, 5, function(v)
+		CrossSettings.BigFillTrans = v;
+	end);
+	Crs_createToggle(bigFillContent, "彩虹模式", CrossSettings.BigFillRain, function(b)
+		CrossSettings.BigFillRain = b;
+	end);
+	Crs_createSlider(bigFillContent, "彩虹速度", 0.1, 5, CrossSettings.BigFillRainSpd, 0.1, function(v)
+		CrossSettings.BigFillRainSpd = v;
+	end);
+	local bigStrContent = Crs_createSectionToggle(mainContentContainer, "大圓邊框", CrossSettings.BigStrVis, function(b)
+		CrossSettings.BigStrVis = b;
+	end);
+	Crs_createSlider(bigStrContent, "粗細", 0.5, 8, CrossSettings.BigStrThick, 0.5, function(v)
+		CrossSettings.BigStrThick = v;
+	end);
+	Crs_createSlider(bigStrContent, "色相", 0, 360, CrossSettings.BigStrH1, 1, function(v)
+		CrossSettings.BigStrH1 = v;
+	end);
+	Crs_createSlider(bigStrContent, "飽和", 0, 100, CrossSettings.BigStrS1, 1, function(v)
+		CrossSettings.BigStrS1 = v;
+	end);
+	Crs_createSlider(bigStrContent, "明度", 0, 100, CrossSettings.BigStrV1, 1, function(v)
+		CrossSettings.BigStrV1 = v;
+	end);
+	Crs_createSlider(bigStrContent, "透明度", 0, 100, CrossSettings.BigStrTrans, 5, function(v)
+		CrossSettings.BigStrTrans = v;
+	end);
+	Crs_createToggle(bigStrContent, "彩虹模式", CrossSettings.BigStrRain, function(b)
+		CrossSettings.BigStrRain = b;
+	end);
+	Crs_createSlider(bigStrContent, "彩虹速度", 0.1, 5, CrossSettings.BigStrRainSpd, 0.1, function(v)
+		CrossSettings.BigStrRainSpd = v;
+	end);
+	local smlFillContent = Crs_createSectionToggle(mainContentContainer, "小圓填滿", CrossSettings.SmlFillVis, function(b)
+		CrossSettings.SmlFillVis = b;
+	end);
+	Crs_createSlider(smlFillContent, "直徑", 2, 80, CrossSettings.SmlFillDia, 1, function(v)
+		CrossSettings.SmlFillDia = v;
+	end);
+	Crs_createFloatingDropdown(smlFillContent, "漸層模式", {"線性0°","線性45°","線性90°","線性135°","對角漸層","彩虹漸層"}, CrossSettings.SmlFillDir, function(v)
+		CrossSettings.SmlFillDir = v;
+	end);
+	Crs_createSlider(smlFillContent, "色相1", 0, 360, CrossSettings.SmlFillH1, 1, function(v)
+		CrossSettings.SmlFillH1 = v;
+	end);
+	Crs_createSlider(smlFillContent, "飽和1", 0, 100, CrossSettings.SmlFillS1, 1, function(v)
+		CrossSettings.SmlFillS1 = v;
+	end);
+	Crs_createSlider(smlFillContent, "明度1", 0, 100, CrossSettings.SmlFillV1, 1, function(v)
+		CrossSettings.SmlFillV1 = v;
+	end);
+	Crs_createSlider(smlFillContent, "色相2", 0, 360, CrossSettings.SmlFillH2, 1, function(v)
+		CrossSettings.SmlFillH2 = v;
+	end);
+	Crs_createSlider(smlFillContent, "飽和2", 0, 100, CrossSettings.SmlFillS2, 1, function(v)
+		CrossSettings.SmlFillS2 = v;
+	end);
+	Crs_createSlider(smlFillContent, "明度2", 0, 100, CrossSettings.SmlFillV2, 1, function(v)
+		CrossSettings.SmlFillV2 = v;
+	end);
+	Crs_createSlider(smlFillContent, "透明度", 0, 100, CrossSettings.SmlFillTrans, 5, function(v)
+		CrossSettings.SmlFillTrans = v;
+	end);
+	Crs_createToggle(smlFillContent, "彩虹模式", CrossSettings.SmlFillRain, function(b)
+		CrossSettings.SmlFillRain = b;
+	end);
+	Crs_createSlider(smlFillContent, "彩虹速度", 0.1, 5, CrossSettings.SmlFillRainSpd, 0.1, function(v)
+		CrossSettings.SmlFillRainSpd = v;
+	end);
+	local smlStrContent = Crs_createSectionToggle(mainContentContainer, "小圓邊框", CrossSettings.SmlStrVis, function(b)
+		CrossSettings.SmlStrVis = b;
+	end);
+	Crs_createSlider(smlStrContent, "粗細", 0.5, 6, CrossSettings.SmlStrThick, 0.5, function(v)
+		CrossSettings.SmlStrThick = v;
+	end);
+	Crs_createSlider(smlStrContent, "色相", 0, 360, CrossSettings.SmlStrH1, 1, function(v)
+		CrossSettings.SmlStrH1 = v;
+	end);
+	Crs_createSlider(smlStrContent, "飽和", 0, 100, CrossSettings.SmlStrS1, 1, function(v)
+		CrossSettings.SmlStrS1 = v;
+	end);
+	Crs_createSlider(smlStrContent, "明度", 0, 100, CrossSettings.SmlStrV1, 1, function(v)
+		CrossSettings.SmlStrV1 = v;
+	end);
+	Crs_createSlider(smlStrContent, "透明度", 0, 100, CrossSettings.SmlStrTrans, 5, function(v)
+		CrossSettings.SmlStrTrans = v;
+	end);
+	Crs_createToggle(smlStrContent, "彩虹模式", CrossSettings.SmlStrRain, function(b)
+		CrossSettings.SmlStrRain = b;
+	end);
+	Crs_createSlider(smlStrContent, "彩虹速度", 0.1, 5, CrossSettings.SmlStrRainSpd, 0.1, function(v)
+		CrossSettings.SmlStrRainSpd = v;
+	end);
+	local crossFillContent = Crs_createSectionToggle(mainContentContainer, "十字填滿", CrossSettings.CrossFillVis, function(b)
+		CrossSettings.CrossFillVis = b;
+	end);
+	Crs_createFloatingDropdown(crossFillContent, "漸層模式", {"線性0°","線性45°","線性90°","線性135°","對角漸層","彩虹漸層"}, CrossSettings.CrossFillDir, function(v)
+		CrossSettings.CrossFillDir = v;
+	end);
+	Crs_createSlider(crossFillContent, "色相1", 0, 360, CrossSettings.CrossFillH1, 1, function(v)
+		CrossSettings.CrossFillH1 = v;
+	end);
+	Crs_createSlider(crossFillContent, "飽和1", 0, 100, CrossSettings.CrossFillS1, 1, function(v)
+		CrossSettings.CrossFillS1 = v;
+	end);
+	Crs_createSlider(crossFillContent, "明度1", 0, 100, CrossSettings.CrossFillV1, 1, function(v)
+		CrossSettings.CrossFillV1 = v;
+	end);
+	Crs_createSlider(crossFillContent, "色相2", 0, 360, CrossSettings.CrossFillH2, 1, function(v)
+		CrossSettings.CrossFillH2 = v;
+	end);
+	Crs_createSlider(crossFillContent, "飽和2", 0, 100, CrossSettings.CrossFillS2, 1, function(v)
+		CrossSettings.CrossFillS2 = v;
+	end);
+	Crs_createSlider(crossFillContent, "明度2", 0, 100, CrossSettings.CrossFillV2, 1, function(v)
+		CrossSettings.CrossFillV2 = v;
+	end);
+	Crs_createSlider(crossFillContent, "透明度", 0, 100, CrossSettings.CrossFillTrans, 5, function(v)
+		CrossSettings.CrossFillTrans = v;
+	end);
+	Crs_createToggle(crossFillContent, "彩虹模式", CrossSettings.CrossFillRain, function(b)
+		CrossSettings.CrossFillRain = b;
+	end);
+	Crs_createSlider(crossFillContent, "彩虹速度", 0.1, 5, CrossSettings.CrossFillRainSpd, 0.1, function(v)
+		CrossSettings.CrossFillRainSpd = v;
+	end);
+	Crs_createDivider(crossFillContent);
+	Crs_createToggle(crossFillContent, "十字邊框", CrossSettings.CrossStrVis, function(b)
+		CrossSettings.CrossStrVis = b;
+	end);
+	Crs_createSlider(crossFillContent, "邊框粗細", 0, 6, CrossSettings.CrossStrThick, 1, function(v)
+		CrossSettings.CrossStrThick = v;
+		Crs_updateCrossLines();
+	end);
+	Crs_createFloatingDropdown(crossFillContent, "邊框漸層", {"線性0°","線性45°","線性90°","線性135°","對角漸層","彩虹漸層"}, CrossSettings.CrossStrDir, function(v)
+		CrossSettings.CrossStrDir = v;
+	end);
+	Crs_createSlider(crossFillContent, "邊框色相", 0, 360, CrossSettings.CrossStrH1, 1, function(v)
+		CrossSettings.CrossStrH1 = v;
+	end);
+	Crs_createSlider(crossFillContent, "邊框飽和", 0, 100, CrossSettings.CrossStrS1, 1, function(v)
+		CrossSettings.CrossStrS1 = v;
+	end);
+	Crs_createSlider(crossFillContent, "邊框明度", 0, 100, CrossSettings.CrossStrV1, 1, function(v)
+		CrossSettings.CrossStrV1 = v;
+	end);
+	Crs_createSlider(crossFillContent, "邊框透明度", 0, 100, CrossSettings.CrossStrTrans, 5, function(v)
+		CrossSettings.CrossStrTrans = v;
+	end);
+	Crs_createToggle(crossFillContent, "邊框彩虹", CrossSettings.CrossStrRain, function(b)
+		CrossSettings.CrossStrRain = b;
+	end);
+	Crs_createSlider(crossFillContent, "邊框彩虹速度", 0.1, 5, CrossSettings.CrossStrRainSpd, 0.1, function(v)
+		CrossSettings.CrossStrRainSpd = v;
+	end);
+	local dotContent = Crs_createSectionToggle(mainContentContainer, "中心點", CrossSettings.DotVis, function(b)
+		CrossSettings.DotVis = b;
+	end);
+	Crs_createSlider(dotContent, "大小", 2, 12, CrossSettings.DotSize, 1, function(v)
+		CrossSettings.DotSize = v;
+	end);
+	Crs_createFloatingDropdown(dotContent, "漸層模式", {"線性0°","線性45°","線性90°","線性135°","對角漸層","彩虹漸層"}, CrossSettings.DotDir, function(v)
+		CrossSettings.DotDir = v;
+	end);
+	Crs_createSlider(dotContent, "色相1", 0, 360, CrossSettings.DotH1, 1, function(v)
+		CrossSettings.DotH1 = v;
+	end);
+	Crs_createSlider(dotContent, "飽和1", 0, 100, CrossSettings.DotS1, 1, function(v)
+		CrossSettings.DotS1 = v;
+	end);
+	Crs_createSlider(dotContent, "明度1", 0, 100, CrossSettings.DotV1, 1, function(v)
+		CrossSettings.DotV1 = v;
+	end);
+	Crs_createSlider(dotContent, "色相2", 0, 360, CrossSettings.DotH2, 1, function(v)
+		CrossSettings.DotH2 = v;
+	end);
+	Crs_createSlider(dotContent, "飽和2", 0, 100, CrossSettings.DotS2, 1, function(v)
+		CrossSettings.DotS2 = v;
+	end);
+	Crs_createSlider(dotContent, "明度2", 0, 100, CrossSettings.DotV2, 1, function(v)
+		CrossSettings.DotV2 = v;
+	end);
+	Crs_createSlider(dotContent, "透明度", 0, 100, CrossSettings.DotTrans, 5, function(v)
+		CrossSettings.DotTrans = v;
+	end);
+	Crs_createToggle(dotContent, "彩虹模式", CrossSettings.DotRain, function(b)
+		CrossSettings.DotRain = b;
+	end);
+	Crs_createSlider(dotContent, "彩虹速度", 0.1, 5, CrossSettings.DotRainSpd, 0.1, function(v)
+		CrossSettings.DotRainSpd = v;
+	end);
+	local textContent = Crs_createSectionToggle(mainContentContainer, "文字標籤", CrossSettings.TextVis, function(b)
+		CrossSettings.TextVis = b;
+	end);
+	Crs_createSlider(textContent, "大小", 10, 30, CrossSettings.TextSize, 1, function(v)
+		CrossSettings.TextSize = v;
+	end);
+	Crs_createFloatingDropdown(textContent, "漸層模式", {"線性0°","線性45°","線性90°","線性135°","對角漸層","彩虹漸層"}, CrossSettings.TextDir, function(v)
+		CrossSettings.TextDir = v;
+	end);
+	Crs_createSlider(textContent, "色相1", 0, 360, CrossSettings.TextH1, 1, function(v)
+		CrossSettings.TextH1 = v;
+	end);
+	Crs_createSlider(textContent, "飽和1", 0, 100, CrossSettings.TextS1, 1, function(v)
+		CrossSettings.TextS1 = v;
+	end);
+	Crs_createSlider(textContent, "明度1", 0, 100, CrossSettings.TextV1, 1, function(v)
+		CrossSettings.TextV1 = v;
+	end);
+	Crs_createSlider(textContent, "色相2", 0, 360, CrossSettings.TextH2, 1, function(v)
+		CrossSettings.TextH2 = v;
+	end);
+	Crs_createSlider(textContent, "飽和2", 0, 100, CrossSettings.TextS2, 1, function(v)
+		CrossSettings.TextS2 = v;
+	end);
+	Crs_createSlider(textContent, "明度2", 0, 100, CrossSettings.TextV2, 1, function(v)
+		CrossSettings.TextV2 = v;
+	end);
+	Crs_createSlider(textContent, "透明度", 0, 100, CrossSettings.TextTrans, 5, function(v)
+		CrossSettings.TextTrans = v;
+	end);
+	Crs_createSlider(textContent, "水平偏移", -150, 150, CrossSettings.TextX, 1, function(v)
+		CrossSettings.TextX = v;
+	end);
+	Crs_createSlider(textContent, "垂直偏移", -100, 200, CrossSettings.TextY, 1, function(v)
+		CrossSettings.TextY = v;
+	end);
+	Crs_createToggle(textContent, "彩虹模式", CrossSettings.TextRain, function(b)
+		CrossSettings.TextRain = b;
+	end);
+	Crs_createSlider(textContent, "彩虹速度", 0.1, 5, CrossSettings.TextRainSpd, 0.1, function(v)
+		CrossSettings.TextRainSpd = v;
+	end);
 end
 BuildCrossTab();
 local configContent = TabContents[6];
