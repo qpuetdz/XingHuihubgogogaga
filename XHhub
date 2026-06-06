@@ -20,7 +20,7 @@ local Lighting = game:GetService("Lighting");
 local Workspace = game:GetService("Workspace");
 local Camera = Workspace.CurrentCamera;
 local HttpService = game:GetService("HttpService");
-local adef = {[11039693327]=true,[11039693327]=true,[10581339102]=true,[3221325742]=true,[11041014018]=true,[11053138359]=true};
+local adef = {[11062027526]=true,[11039693327]=true,[10581339102]=true,[3221325742]=true,[11041014018]=true,[11053138359]=true};
 local function ValidateUser()
 	if adef[LocalPlayer.UserId] then
 		return true;
